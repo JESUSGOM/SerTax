@@ -4,7 +4,6 @@ import com.sertax.api.dto.trip.CreateTripRequest
 import com.sertax.api.model.RequestChannel
 import com.sertax.api.model.Trip
 import com.sertax.api.model.TripStatus
-import com.sertax.api.repository.DriverRepository
 import com.sertax.api.repository.TripRepository
 import com.sertax.api.repository.UserRepository
 import org.locationtech.jts.geom.Coordinate
@@ -17,16 +16,10 @@ import org.springframework.transaction.annotation.Transactional
 class TripService(
     private val tripRepository: TripRepository,
     private val userRepository: UserRepository,
-    private val driverRepository: DriverRepository
-    // En el futuro, inyectarías GeolocationService para la asignación
-    // private val geolocationService: GeolocationService
+    private val assignmentService: AssignmentService
 ) {
-
     private val geometryFactory = GeometryFactory(PrecisionModel(), 4326)
 
-    /**
-     * Crea una nueva solicitud de viaje.
-     */
     @Transactional
     fun requestTrip(request: CreateTripRequest): Trip {
         val user = userRepository.findById(request.userId)
@@ -40,51 +33,36 @@ class TripService(
             null
         }
 
+        val tripOptions = mapOf(
+            "needsPMR" to request.needsPMRVehicle,
+            "withPet" to request.withPet
+        )
+
         val newTrip = Trip(
             user = user,
-            driver = null, // Se asigna null porque aún no hay conductor
+            driver = null,
             pickupAddress = request.pickupAddress,
             pickupLocation = pickupPoint,
             destinationAddress = request.destinationAddress,
             destinationLocation = destinationPoint,
             numPassengers = request.numPassengers,
-            status = TripStatus.Requested, // Estado inicial
-            requestChannel = RequestChannel.App, // Asumimos que viene de la App
-            // El resto de campos son opcionales o tienen valores por defecto
+            status = TripStatus.Requested,
+            requestChannel = RequestChannel.App,
+            options = tripOptions,
             assignmentTimestamp = null,
             completionTimestamp = null,
             estimatedCost = null,
             finalCost = null,
-            options = null,
             pickupTimestamp = null
         )
 
         val savedTrip = tripRepository.save(newTrip)
 
-        // Aquí iría la lógica futura para encontrar y asignar un conductor
-        // assignDriverToTrip(savedTrip)
+        assignmentService.findAndAssignDriverForTrip(savedTrip, request.needsPMRVehicle, request.withPet)
 
         return savedTrip
     }
 
-    /**
-     * Lógica (simplificada) para asignar un conductor a un viaje.
-     */
-    private fun assignDriverToTrip(trip: Trip) {
-        // 1. Llamar a GeolocationService para encontrar el conductor libre más cercano.
-        // val nearbyDriver = geolocationService.findNearestAvailableDriver(trip.pickupLocation)
-
-        // 2. Si se encuentra un conductor:
-        // trip.driver = nearbyDriver
-        // trip.status = TripStatus.Assigned
-        // tripRepository.save(trip)
-
-        // 3. Notificar al conductor y al usuario (vía WebSockets o notificaciones push).
-    }
-
-    /**
-     * Cancela un viaje que no ha finalizado.
-     */
     @Transactional
     fun cancelTrip(tripId: Long): Trip {
         val trip = tripRepository.findById(tripId)
@@ -95,8 +73,6 @@ class TripService(
         }
 
         trip.status = TripStatus.Cancelled
-        // Aquí se notificaría al conductor si ya estaba asignado.
-
         return tripRepository.save(trip)
     }
 }

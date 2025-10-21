@@ -25,5 +25,8 @@ data class Vehicle(
     @Column(length = 255)
     var photoUrl: String?,
 
-    var isPMRAdapted: Boolean = false
+    var isPMRAdapted: Boolean = false,
+
+    @Column(name = "allowspets")
+    var allowsPets: Boolean = false
 )

@@ -12,7 +12,9 @@ data class CreateTripRequest(
     val destinationAddress: String?,
     val destinationLatitude: Double?,
     val destinationLongitude: Double?,
-    val numPassengers: Int = 1
+    val numPassengers: Int = 1,
+    val needsPMRVehicle: Boolean = false,
+    val withPet: Boolean = false
 )
 
 // DTO para representar la información de un viaje a devolver por la API
@@ -23,7 +25,7 @@ data class TripResponse(
     val pickupAddress: String,
     val destinationAddress: String?,
     val finalCost: BigDecimal?,
-    val driverInfo: DriverInfo? // Sub-DTO con info del conductor
+    val driverInfo: DriverInfo?
 ) {
     data class DriverInfo(
         val name: String,
@@ -31,3 +33,18 @@ data class TripResponse(
         val licensePlate: String
     )
 }
+
+// DTO para solicitar una estimación de viaje
+data class TripEstimateRequest(
+    val pickupLatitude: Double,
+    val pickupLongitude: Double,
+    val destinationLatitude: Double,
+    val destinationLongitude: Double
+)
+
+// DTO para devolver el resultado de la estimación
+data class TripEstimateResponse(
+    val estimatedCost: BigDecimal,
+    val estimatedDurationMinutes: Int,
+    val distanceMeters: Int
+)

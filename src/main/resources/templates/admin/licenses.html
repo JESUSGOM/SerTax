@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/layout :: layout(~{::title}, ~{::div.content-fragment})}">
+<head>
+    <title>Gestión de Licencias</title>
+</head>
+<body>
+<div class="content-fragment">
+    <div th:if="${successMessage}" style="color: green; margin-bottom: 15px;" th:text="${successMessage}"></div>
+    <div th:if="${errorMessage}" style="color: red; margin-bottom: 15px;" th:text="${errorMessage}"></div>
+
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+        <a th:href="@{/admin/licenses/new}" style="text-decoration: none; padding: 10px 15px; background-color: #28a745; color: white; border-radius: 5px;">
+            + Crear Nueva Licencia
+        </a>
+    </div>
+    <table>
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Número de Licencia</th>
+            <th>Asociación</th>
+            <th>Acciones</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="license : ${licenses}">
+            <td th:text="${license.licenseId}">1</td>
+            <td th:text="${license.licenseNumber}">SC-1234</td>
+            <td th:text="${license.association?.name ?: 'N/A'}">Radio Taxi</td>
+            <td>
+                <a th:href="@{/admin/licenses/edit/{id}(id=${license.licenseId})}">Editar</a>
+            </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(licenses)}">
+            <td colspan="4" style="text-align: center;">No hay licencias registradas.</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>

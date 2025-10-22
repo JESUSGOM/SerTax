@@ -1,33 +1,15 @@
-package com.sertax.api.controller
+package com.sertax.api.repository
 
-import com.sertax.api.service.FleetService
-import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
+import com.sertax.api.model.DriverRealtimeStatus
+import com.sertax.api.model.DriverStatus
+import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.stereotype.Repository
 
-@RestController
-@RequestMapping("/api/fleet")
-// TODO: Proteger esta ruta para que solo los conductores autenticados puedan acceder
-class FleetController(private val fleetService: FleetService) {
-
+@Repository
+interface DriverStatusRepository : JpaRepository<DriverStatus, Long> {
     /**
-     * Devuelve la ubicación y estado de otros conductores activos para ser mostrados en el mapa.
-     * @param driverId El ID del conductor que hace la petición, para excluirlo de la lista.
+     * Encuentra todos los registros de estado de conductor que coinciden con un estado específico.
+     * Este método es utilizado por el FleetService para contar cuántos taxis hay en las paradas.
      */
-    @GetMapping("/drivers/{driverId}")
-    fun getNearbyDrivers(@PathVariable driverId: Long): ResponseEntity<*> {
-        val drivers = fleetService.getNearbyDrivers(driverId)
-        return ResponseEntity.ok(drivers)
-    }
-
-    /**
-     * Devuelve una lista de todas las paradas de taxi y el número de vehículos en cada una.
-     */
-    @GetMapping("/stops")
-    fun getTaxiStopsStatus(): ResponseEntity<*> {
-        val stops = fleetService.getTaxiStopStatus()
-        return ResponseEntity.ok(stops)
-    }
+    fun findByCurrentStatus(currentStatus: DriverRealtimeStatus): List<DriverStatus>
 }

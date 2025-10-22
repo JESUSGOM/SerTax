@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/layout :: layout(~{::title}, ~{::div.content-fragment})}">
+<head>
+    <title>Gestión de Vehículos</title>
+</head>
+<body>
+<div class="content-fragment">
+    <div th:if="${successMessage}" style="color: green; margin-bottom: 15px;" th:text="${successMessage}"></div>
+    <div th:if="${errorMessage}" style="color: red; margin-bottom: 15px;" th:text="${errorMessage}"></div>
+
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+        <a th:href="@{/admin/vehicles/new}" style="text-decoration: none; padding: 10px 15px; background-color: #28a745; color: white; border-radius: 5px;">
+            + Registrar Nuevo Vehículo
+        </a>
+    </div>
+    <table>
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Matrícula</th>
+            <th>Licencia Asociada</th>
+            <th>Marca/Modelo</th>
+            <th>Adaptado PMR</th>
+            <th>Admite Mascotas</th>
+            <th>Acciones</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="vehicle : ${vehicles}">
+            <td th:text="${vehicle.vehicleId}">1</td>
+            <td th:text="${vehicle.licensePlate}">1234-ABC</td>
+            <td th:text="${vehicle.license.licenseNumber}">SC-0001</td>
+            <td th:text="${vehicle.make} + ' ' + ${vehicle.model}">Seat Toledo</td>
+            <td>
+                <span th:text="${vehicle.isPMRAdapted ? 'Sí' : 'No'}" th:style="${vehicle.isPMRAdapted ? 'font-weight: bold; color: green;' : ''}"></span>
+            </td>
+            <td>
+                <span th:text="${vehicle.allowsPets ? 'Sí' : 'No'}" th:style="${vehicle.allowsPets ? 'font-weight: bold; color: green;' : ''}"></span>
+            </td>
+            <td>
+                <a th:href="@{/admin/vehicles/edit/{id}(id=${vehicle.vehicleId})}">Editar</a>
+            </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(vehicles)}">
+            <td colspan="7" style="text-align: center;">No hay vehículos registrados.</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>

@@ -1,8 +1,7 @@
 package com.sertax.api.service
 
-import com.sertax.api.model.ReporterType
-import com.sertax.api.model.Trip
-import com.sertax.api.model.TripStatus
+import com.sertax.api.model.*
+import com.sertax.api.repository.IncidentRepository
 import com.sertax.api.repository.TripRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -14,7 +13,8 @@ class DriverTripService(
     private val tripRepository: TripRepository,
     private val notificationService: NotificationService,
     private val tripService: TripService,
-    private val assignmentService: AssignmentService // <-- INYECTADO
+    private val assignmentService: AssignmentService,
+    private val incidentRepository: IncidentRepository // <-- INYECTADO
 ) {
 
     private fun findTripAndValidateDriver(tripId: Long, driverId: Long): Trip {
@@ -66,32 +66,18 @@ class DriverTripService(
         return tripService.cancelTrip(tripId, driverId, ReporterType.Driver)
     }
 
-    /**
-     * Permite a un conductor rechazar una oferta de viaje.
-     * El sistema buscará automáticamente un nuevo conductor.
-     */
     @Transactional
     fun rejectTrip(tripId: Long, driverId: Long): Trip {
         val trip = findTripAndValidateDriver(tripId, driverId)
-
-        if (trip.status != TripStatus.Assigned) {
-            throw IllegalStateException("Solo se puede rechazar un viaje que está pendiente de aceptación.")
-        }
-
-        // Notificar al usuario que estamos buscando otro conductor
+        if (trip.status != TripStatus.Assigned) throw IllegalStateException("Solo se puede rechazar un viaje que está pendiente de aceptación.")
         notificationService.notifyUserOfDriverRejection(trip.user.userId, trip)
-
-        // Liberar el viaje del conductor actual
         trip.driver = null
         trip.assignmentTimestamp = null
         trip.status = TripStatus.Requested
         val savedTrip = tripRepository.save(trip)
-
-        // Volver a lanzar el proceso de asignación, excluyendo al conductor que ha rechazado
         val needsPMR = trip.options?.get("needsPMR") as? Boolean ?: false
         val withPet = trip.options?.get("withPet") as? Boolean ?: false
         assignmentService.findAndAssignDriverForTrip(savedTrip, needsPMR, withPet, excludeDriverIds = listOf(driverId))
-
         return savedTrip
     }
 

@@ -28,7 +28,10 @@ class SecurityConfig(
             .authorizeHttpRequests { auth ->
                 auth
                     .requestMatchers("/api/auth/**").permitAll()
-                    .requestMatchers("/api/whatsapp/webhook").permitAll() // <-- AÑADIDO: Permite el acceso al webhook
+                    .requestMatchers("/api/whatsapp/webhook").permitAll()
+                    // --- AÑADIDO: Protege todas las rutas de admin ---
+                    .requestMatchers("/api/admin/**").authenticated()
+                    // TODO: Reemplazar .authenticated() con una validación de rol de administrador, ej: .hasRole("ADMIN")
                     .anyRequest().authenticated()
             }
             .sessionManagement { session ->

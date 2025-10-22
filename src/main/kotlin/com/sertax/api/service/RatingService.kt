@@ -1,51 +1,40 @@
 package com.sertax.api.service
 
-import com.sertax.api.dto.feedback.CreateRatingRequest
-import com.sertax.api.model.Rating
-import com.sertax.api.model.TripStatus
-import com.sertax.api.repository.RatingRepository
-import com.sertax.api.repository.TripRepository
-import com.sertax.api.repository.UserRepository
+import com.sertax.api.dto.panic.PanicRequestDto
+import com.sertax.api.repository.DriverRepository
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
+import java.util.logging.Logger
 
 @Service
-class RatingService(
-    private val ratingRepository: RatingRepository,
-    private val tripRepository: TripRepository,
-    private val userRepository: UserRepository
+class PanicService(
+    private val driverRepository: DriverRepository
+    // En un futuro, se inyectaría un servicio de SMS o de alertas
 ) {
-    /**
-     * Permite a un usuario valorar un viaje.
-     * Valida que el viaje esté completado y que el usuario sea quien lo solicitó.
-     */
-    @Transactional
-    fun createRating(request: CreateRatingRequest): Rating {
-        val trip = tripRepository.findById(request.tripId)
-            .orElseThrow { NoSuchElementException("Viaje con ID ${request.tripId} no encontrado.") }
+    companion object {
+        private val LOGGER = Logger.getLogger(PanicService::class.java.name)
+    }
 
-        val user = userRepository.findById(request.userId)
-            .orElseThrow { NoSuchElementException("Usuario con ID ${request.userId} no encontrado.") }
+    fun triggerPanicAlert(request: PanicRequestDto) {
+        val driver = driverRepository.findByIdOrNull(request.driverId)
+            ?: throw NoSuchElementException("Conductor con ID ${request.driverId} no encontrado.")
 
-        if (trip.user.userId != user.userId) {
-            throw SecurityException("No tienes permiso para valorar este viaje.")
-        }
+        // --- LÓGICA DE ALERTA ---
+        // En una implementación real, aquí se conectaría con un servicio de SMS (como Twilio)
+        // para enviar una alerta a un contacto de emergencia o a la central.
+        // También podría enviar una notificación push a la asociación o al 112.
 
-        if (trip.status != TripStatus.Completed) {
-            throw IllegalStateException("Solo se pueden valorar viajes completados.")
-        }
-        
-        if (request.score < 1 || request.score > 5) {
-            throw IllegalArgumentException("La puntuación debe estar entre 1 y 5.")
-        }
+        val alertMessage = """
+            !!! ALERTA DE PÁNICO !!!
+            Conductor: ${driver.name} (ID: ${driver.driverId})
+            Licencia: ${driver.license.licenseNumber}
+            Ubicación: https://www.google.com/maps?q=${request.latitude},${request.longitude}
+            Mensaje: ${request.message ?: "Sin mensaje adicional."}
+        """.trimIndent()
 
-        val newRating = Rating(
-            trip = trip,
-            user = user,
-            score = request.score,
-            comments = request.comments
-        )
+        // Por ahora, simulamos la alerta imprimiéndola en la consola del servidor.
+        LOGGER.severe(alertMessage)
 
-        return ratingRepository.save(newRating)
+        // Aquí podrías devolver un estado o simplemente confirmar la recepción.
     }
 }

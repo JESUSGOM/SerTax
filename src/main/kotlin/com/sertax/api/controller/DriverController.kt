@@ -30,7 +30,6 @@ class DriverController(
         }
     }
 
-    // ... (endpoints de shift, status, accept, etc. sin cambios) ...
     @PostMapping("/{driverId}/shift/start")
     fun startShift(@PathVariable driverId: Long): ResponseEntity<*> { return try { driverService.startShift(driverId).let { ResponseEntity.ok(mapOf("message" to "Turno iniciado.", "newStatus" to it.currentStatus)) } } catch (e: NoSuchElementException) { ResponseEntity.notFound().build<String>() } }
     @PostMapping("/{driverId}/shift/end")

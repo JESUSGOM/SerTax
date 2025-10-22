@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/layout :: layout(~{::title}, ~{::div.content-fragment})}">
+<head>
+    <title>Gestión de Conductores</title>
+</head>
+<body>
+<div class="content-fragment">
+    <div th:if="${successMessage}" style="color: green; margin-bottom: 15px;" th:text="${successMessage}"></div>
+    <div th:if="${errorMessage}" style="color: red; margin-bottom: 15px;" th:text="${errorMessage}"></div>
+
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+        <a th:href="@{/admin/drivers/new}" style="text-decoration: none; padding: 10px 15px; background-color: #28a745; color: white; border-radius: 5px;">
+            + Crear Nuevo Conductor
+        </a>
+    </div>
+    <table>
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Licencia</th>
+            <th>Rol</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="driver : ${drivers}">
+            <td th:text="${driver.driverId}">1</td>
+            <td th:text="${driver.name}">Nombre Conductor</td>
+            <td th:text="${driver.licenseNumber}">SC-1234</td>
+            <td th:text="${driver.role == 'Owner' ? 'Propietario' : 'Asalariado'}">Propietario</td>
+            <td>
+                        <span th:text="${driver.isActive ? 'Activo' : 'Inactivo'}"
+                              th:style="${driver.isActive ? 'color: green;' : 'color: red;'}"></span>
+            </td>
+            <td>
+                <a th:href="@{/admin/drivers/edit/{id}(id=${driver.driverId})}">Editar</a>
+            </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(drivers)}">
+            <td colspan="6" style="text-align: center;">No hay conductores registrados.</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/layout :: layout(~{::title}, ~{::div.content-fragment})}">
+<head>
+    <title>Gestión de Usuarios</title>
+</head>
+<body>
+<div class="content-fragment">
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+        <a th:href="@{/admin/users/new}" style="text-decoration: none; padding: 10px 15px; background-color: #28a745; color: white; border-radius: 5px;">
+            + Crear Nuevo Usuario
+        </a>
+    </div>
+    <table>
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Email</th>
+            <th>Teléfono</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="user : ${users}">
+            <td th:text="${user.userId}">1</td>
+            <td th:text="${user.name}">Nombre Apellido</td>
+            <td th:text="${user.email}">email@test.com</td>
+            <td th:text="${user.phoneNumber}">600123456</td>
+            <td>
+                        <span th:text="${user.isActive ? 'Activo' : 'Inactivo'}"
+                              th:style="${user.isActive ? 'color: green;' : 'color: red;'}"></span>
+            </td>
+            <td>
+                <a href="#">Editar</a> </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>

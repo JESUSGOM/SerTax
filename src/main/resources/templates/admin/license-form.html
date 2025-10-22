@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/layout :: layout(~{::title}, ~{::div.content-fragment})}">
+<head>
+    <title th:text="${pageTitle}">Formulario de Licencia</title>
+</head>
+<body>
+<div class="content-fragment">
+    <form th:action="@{${formAction}}" th:object="${licenseDto}" method="post" style="max-width: 500px;">
+        <input type="hidden" th:if="${licenseId}" name="id" th:value="${licenseId}" />
+
+        <div style="margin-bottom: 15px;">
+            <label for="licenseNumber">Número de Licencia:</label><br>
+            <input type="text" id="licenseNumber" th:field="*{licenseNumber}" required style="width: 100%; padding: 8px;" />
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label for="associationId">Asociación:</label><br>
+            <select id="associationId" th:field="*{associationId}" style="width: 100%; padding: 8px;">
+                <option value="-1">-- Sin Asociación --</option>
+                <option th:each="assoc : ${associations}"
+                        th:value="${assoc.associationId}"
+                        th:text="${assoc.name}">
+                    Nombre de Asociación
+                </option>
+            </select>
+        </div>
+
+        <div>
+            <button type="submit" style="padding: 10px 15px;">Guardar</button>
+            <a th:href="@{/admin/licenses}" style="padding: 10px 15px; text-decoration: none;">Cancelar</a>
+        </div>
+    </form>
+</div>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/layout :: layout(~{::title}, ~{::div.content-fragment})}">
+<head>
+    <title>Historial de Viajes</title>
+</head>
+<body>
+<div class="content-fragment">
+    <table>
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Fecha Solicitud</th>
+            <th>Usuario</th>
+            <th>Conductor</th>
+            <th>Recogida</th>
+            <th>Destino</th>
+            <th>Coste</th>
+            <th>Valoración</th>
+            <th>Estado</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="trip : ${trips}">
+            <td th:text="${trip.tripId}">1</td>
+            <td th:text="${#temporals.format(trip.requestTimestamp, 'dd/MM/yy HH:mm')}">Fecha</td>
+            <td th:text="${trip.user.name}">Nombre Usuario</td>
+            <td th:text="${trip.driver?.name ?: 'N/A'}">Nombre Conductor</td>
+            <td th:text="${trip.pickupAddress}">Dirección de Recogida</td>
+            <td th:text="${trip.destinationAddress ?: 'N/A'}">Dirección de Destino</td>
+            <td th:text="${trip.finalCost != null ? #numbers.formatCurrency(trip.finalCost) : 'N/A'}">€12.50</td>
+            <td th:text="${trip.rating ?: 'N/A'}">5</td>
+            <td th:text="${trip.status}">Completado</td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(trips)}">
+            <td colspan="9" style="text-align: center;">No hay viajes registrados en el sistema.</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>

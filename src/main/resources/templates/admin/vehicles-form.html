@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/layout :: layout(~{::title}, ~{::div.content-fragment})}">
+<head>
+    <title th:text="${pageTitle}">Formulario de Vehículo</title>
+</head>
+<body>
+<div class="content-fragment">
+    <form th:action="@{${formAction}}" th:object="${vehicleDto}" method="post" style="max-width: 500px;">
+        <input type="hidden" th:if="${vehicleId}" name="id" th:value="${vehicleId}" />
+
+        <div style="margin-bottom: 15px;">
+            <label for="licensePlate">Matrícula:</label><br>
+            <input type="text" id="licensePlate" th:field="*{licensePlate}" required style="width: 100%; padding: 8px;" />
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label for="licenseId">Licencia Asociada:</label><br>
+            <select id="licenseId" th:field="*{licenseId}" th:if="${vehicleId == null}" style="width: 100%; padding: 8px;">
+                <option value="">-- Seleccione una Licencia --</option>
+                <option th:each="lic : ${licenses}"
+                        th:value="${lic.licenseId}"
+                        th:text="${lic.licenseNumber}">
+                </option>
+            </select>
+            <input type="text" th:if="${vehicleId != null}" th:value="${currentLicense.licenseNumber}" disabled style="width: 100%; padding: 8px; background-color: #eee;" />
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label for="make">Marca:</label><br>
+            <input type="text" id="make" th:field="*{make}" style="width: 100%; padding: 8px;" />
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label for="model">Modelo:</label><br>
+            <input type="text" id="model" th:field="*{model}" style="width: 100%; padding: 8px;" />
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <input type="checkbox" id="isPMRAdapted" th:field="*{isPMRAdapted}" />
+            <label for="isPMRAdapted">Adaptado para PMR</label>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <input type="checkbox" id="allowsPets" th:field="*{allowsPets}" />
+            <label for="allowsPets">Admite Mascotas</label>
+        </div>
+
+        <div>
+            <button type="submit" style="padding: 10px 15px;">Guardar</button>
+            <a th:href="@{/admin/vehicles}" style="padding: 10px 15px; text-decoration: none;">Cancelar</a>
+        </div>
+    </form>
+</div>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/layout :: layout(~{::title}, ~{::div.content-fragment})}">
+<head>
+    <title th:text="${pageTitle}">Formulario de Conductor</title>
+</head>
+<body>
+<div class="content-fragment">
+    <form th:action="@{${formAction}}" th:object="${driverDto}" method="post" style="max-width: 500px;">
+        <input type="hidden" th:if="${driverId}" name="id" th:value="${driverId}" />
+
+        <div style="margin-bottom: 15px;">
+            <label for="name">Nombre:</label><br>
+            <input type="text" id="name" th:field="*{name}" required style="width: 100%; padding: 8px;" />
+        </div>
+
+        <div style="margin-bottom: 15px;" th:if="${driverId == null}">
+            <label for="password">Contraseña:</label><br>
+            <input type="password" id="password" th:field="*{password}" required style="width: 100%; padding: 8px;" />
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label for="role">Rol:</label><br>
+            <select id="role" th:field="*{role}" style="width: 100%; padding: 8px;">
+                <option th:each="roleOpt : ${roles}"
+                        th:value="${roleOpt}"
+                        th:text="${roleOpt == 'Owner' ? 'Propietario' : 'Asalariado'}">
+                </option>
+            </select>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <label for="licenseId">Licencia:</label><br>
+            <select id="licenseId" th:field="*{licenseId}" th:if="${driverId == null}" style="width: 100%; padding: 8px;">
+                <option th:each="lic : ${licenses}"
+                        th:value="${lic.licenseId}"
+                        th:text="${lic.licenseNumber}">
+                </option>
+            </select>
+            <input type="text" th:if="${driverId != null}" th:value="${currentLicense.licenseNumber}" disabled style="width: 100%; padding: 8px; background-color: #eee;" />
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <input type="checkbox" id="isActive" th:field="*{isActive}" />
+            <label for="isActive">Activo</label>
+        </div>
+
+        <div>
+            <button type="submit" style="padding: 10px 15px;">Guardar</button>
+            <a th:href="@{/admin/drivers}" style="padding: 10px 15px; text-decoration: none;">Cancelar</a>
+        </div>
+    </form>
+</div>
+</body>
+</html>

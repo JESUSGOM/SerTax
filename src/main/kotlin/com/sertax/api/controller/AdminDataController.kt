@@ -1,73 +1,171 @@
 package com.sertax.api.controller
 
+import com.sertax.api.dto.admin.*
 import com.sertax.api.service.AdminDataService
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/admin")
-// TODO: Proteger esta ruta para que solo sea accesible por administradores autenticados
 class AdminDataController(private val adminDataService: AdminDataService) {
 
+    // --- ENDPOINTS DE LECTURA (GET) ---
     @GetMapping("/dashboard")
-    fun getDashboardStats(): ResponseEntity<*> {
-        val stats = adminDataService.getDashboardStats()
-        return ResponseEntity.ok(stats)
-    }
-
+    fun getDashboardStats(): ResponseEntity<*> { return ResponseEntity.ok(adminDataService.getDashboardStats()) }
     @GetMapping("/drivers")
-    fun getAllDrivers(): ResponseEntity<*> {
-        val drivers = adminDataService.getAllDrivers()
-        return ResponseEntity.ok(drivers)
-    }
-
+    fun getAllDrivers(): ResponseEntity<*> { return ResponseEntity.ok(adminDataService.getAllDrivers()) }
     @GetMapping("/drivers/{id}")
-    fun getDriverDetails(@PathVariable id: Long): ResponseEntity<*> {
-        return try {
-            val driverDetails = adminDataService.getDriverDetails(id)
-            ResponseEntity.ok(driverDetails)
-        } catch (e: NoSuchElementException) {
-            ResponseEntity.notFound().build<String>()
-        }
-    }
-
+    fun getDriverDetails(@PathVariable id: Long): ResponseEntity<*> { return try { ResponseEntity.ok(adminDataService.getDriverDetails(id)) } catch (e: NoSuchElementException) { ResponseEntity.notFound().build<String>() } }
     @GetMapping("/trips")
-    fun getTripHistory(): ResponseEntity<*> {
-        val trips = adminDataService.getAllTrips()
-        return ResponseEntity.ok(trips)
-    }
-
-    /**
-     * Devuelve una lista de todas las incidencias reportadas en el sistema.
-     */
+    fun getTripHistory(): ResponseEntity<*> { return ResponseEntity.ok(adminDataService.getAllTrips()) }
     @GetMapping("/incidents")
-    fun getAllIncidents(): ResponseEntity<*> {
-        val incidents = adminDataService.getAllIncidents()
-        return ResponseEntity.ok(incidents)
-    }
-
-    /**
-     * Devuelve los detalles completos de una incidencia específica.
-     */
+    fun getAllIncidents(): ResponseEntity<*> { return ResponseEntity.ok(adminDataService.getAllIncidents()) }
     @GetMapping("/incidents/{id}")
-    fun getIncidentDetails(@PathVariable id: Long): ResponseEntity<*> {
+    fun getIncidentDetails(@PathVariable id: Long): ResponseEntity<*> { return try { ResponseEntity.ok(adminDataService.getIncidentDetails(id)) } catch (e: NoSuchElementException) { ResponseEntity.notFound().build<String>() } }
+    @GetMapping("/ratings/stats")
+    fun getRatingStats(): ResponseEntity<*> { return ResponseEntity.ok(adminDataService.getRatingStats()) }
+
+    // --- ENDPOINTS DE GESTIÓN DE USUARIOS ---
+    @PostMapping("/users")
+    fun createUser(@RequestBody request: CreateUserRequestDto): ResponseEntity<*> {
         return try {
-            val incidentDetails = adminDataService.getIncidentDetails(id)
-            ResponseEntity.ok(incidentDetails)
-        } catch (e: NoSuchElementException) {
-            ResponseEntity.notFound().build<String>()
+            ResponseEntity.status(HttpStatus.CREATED).body(adminDataService.createUser(request))
+        } catch (e: IllegalStateException) {
+            ResponseEntity.badRequest().body(mapOf("error" to e.message))
+        }
+    }
+    @PutMapping("/users/{id}")
+    fun updateUser(@PathVariable id: Long, @RequestBody request: UpdateUserRequestDto): ResponseEntity<*> {
+        return try {
+            ResponseEntity.ok(adminDataService.updateUser(id, request))
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().body(mapOf("error" to e.message))
         }
     }
 
-    /**
-     * Devuelve estadísticas agregadas sobre las valoraciones de los viajes.
-     */
+    // --- NUEVOS ENDPOINTS DE GESTIÓN DE LICENCIAS ---
+    @PostMapping("/licenses")
+    fun createLicense(@RequestBody request: CreateLicenseRequestDto): ResponseEntity<*> {
+        return try {
+            ResponseEntity.status(HttpStatus.CREATED).body(adminDataService.createLicense(request))
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().body(mapOf("error" to e.message))
+        }
+    }
+
+    // --- NUEVOS ENDPOINTS DE GESTIÓN DE CONDUCTORES ---
+    @PostMapping("/drivers")
+    fun createDriver(@RequestBody request: CreateDriverRequestDto): ResponseEntity<*> {
+        return try {
+            ResponseEntity.status(HttpStatus.CREATED).body(adminDataService.createDriver(request))
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().body(mapOf("error" to e.message))
+        }
+    }
+
+    // --- NUEVOS ENDPOINTS DE GESTIÓN DE VEHÍCULOS ---
+    @PostMapping("/vehicles")
+    fun createVehicle(@RequestBody request: CreateVehicleRequestDto): ResponseEntity<*> {
+        return try {
+            ResponseEntity.status(HttpStatus.CREATED).body(adminDataService.createVehicle(request))
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().body(mapOf("error" to e.message))
+        }
+    }
+
+    // --- NUEVO ENDPOINT PARA CONFIGURACIÓN DEL SISTEMA ---
+    @PutMapping("/config/{key}")
+    fun updateSystemConfig(@PathVariable key: String, @RequestBody request: UpdateSystemConfigRequestDto): ResponseEntity<*> {
+        return try {
+            ResponseEntity.ok(adminDataService.updateSystemConfig(key, request))
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().body(mapOf("error" to e.message))
+        }
+    }
+}package com.sertax.api.controller
+
+import com.sertax.api.dto.admin.*
+import com.sertax.api.service.AdminDataService
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.*
+
+@RestController
+@RequestMapping("/api/admin")
+class AdminDataController(private val adminDataService: AdminDataService) {
+
+    // --- ENDPOINTS DE LECTURA (GET) ---
+    @GetMapping("/dashboard")
+    fun getDashboardStats(): ResponseEntity<*> { return ResponseEntity.ok(adminDataService.getDashboardStats()) }
+    @GetMapping("/drivers")
+    fun getAllDrivers(): ResponseEntity<*> { return ResponseEntity.ok(adminDataService.getAllDrivers()) }
+    @GetMapping("/drivers/{id}")
+    fun getDriverDetails(@PathVariable id: Long): ResponseEntity<*> { return try { ResponseEntity.ok(adminDataService.getDriverDetails(id)) } catch (e: NoSuchElementException) { ResponseEntity.notFound().build<String>() } }
+    @GetMapping("/trips")
+    fun getTripHistory(): ResponseEntity<*> { return ResponseEntity.ok(adminDataService.getAllTrips()) }
+    @GetMapping("/incidents")
+    fun getAllIncidents(): ResponseEntity<*> { return ResponseEntity.ok(adminDataService.getAllIncidents()) }
+    @GetMapping("/incidents/{id}")
+    fun getIncidentDetails(@PathVariable id: Long): ResponseEntity<*> { return try { ResponseEntity.ok(adminDataService.getIncidentDetails(id)) } catch (e: NoSuchElementException) { ResponseEntity.notFound().build<String>() } }
     @GetMapping("/ratings/stats")
-    fun getRatingStats(): ResponseEntity<*> {
-        val stats = adminDataService.getRatingStats()
-        return ResponseEntity.ok(stats)
+    fun getRatingStats(): ResponseEntity<*> { return ResponseEntity.ok(adminDataService.getRatingStats()) }
+
+    // --- ENDPOINTS DE GESTIÓN DE USUARIOS ---
+    @PostMapping("/users")
+    fun createUser(@RequestBody request: CreateUserRequestDto): ResponseEntity<*> {
+        return try {
+            ResponseEntity.status(HttpStatus.CREATED).body(adminDataService.createUser(request))
+        } catch (e: IllegalStateException) {
+            ResponseEntity.badRequest().body(mapOf("error" to e.message))
+        }
+    }
+    @PutMapping("/users/{id}")
+    fun updateUser(@PathVariable id: Long, @RequestBody request: UpdateUserRequestDto): ResponseEntity<*> {
+        return try {
+            ResponseEntity.ok(adminDataService.updateUser(id, request))
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().body(mapOf("error" to e.message))
+        }
+    }
+
+    // --- NUEVOS ENDPOINTS DE GESTIÓN DE LICENCIAS ---
+    @PostMapping("/licenses")
+    fun createLicense(@RequestBody request: CreateLicenseRequestDto): ResponseEntity<*> {
+        return try {
+            ResponseEntity.status(HttpStatus.CREATED).body(adminDataService.createLicense(request))
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().body(mapOf("error" to e.message))
+        }
+    }
+
+    // --- NUEVOS ENDPOINTS DE GESTIÓN DE CONDUCTORES ---
+    @PostMapping("/drivers")
+    fun createDriver(@RequestBody request: CreateDriverRequestDto): ResponseEntity<*> {
+        return try {
+            ResponseEntity.status(HttpStatus.CREATED).body(adminDataService.createDriver(request))
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().body(mapOf("error" to e.message))
+        }
+    }
+
+    // --- NUEVOS ENDPOINTS DE GESTIÓN DE VEHÍCULOS ---
+    @PostMapping("/vehicles")
+    fun createVehicle(@RequestBody request: CreateVehicleRequestDto): ResponseEntity<*> {
+        return try {
+            ResponseEntity.status(HttpStatus.CREATED).body(adminDataService.createVehicle(request))
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().body(mapOf("error" to e.message))
+        }
+    }
+
+    // --- NUEVO ENDPOINT PARA CONFIGURACIÓN DEL SISTEMA ---
+    @PutMapping("/config/{key}")
+    fun updateSystemConfig(@PathVariable key: String, @RequestBody request: UpdateSystemConfigRequestDto): ResponseEntity<*> {
+        return try {
+            ResponseEntity.ok(adminDataService.updateSystemConfig(key, request))
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().body(mapOf("error" to e.message))
+        }
     }
 }

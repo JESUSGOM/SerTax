@@ -67,24 +67,6 @@ data class UpdateVehicleRequestDto(
     val allowsPets: Boolean
 )
 
-// --- DTOs para Gestión de Vehículos ---
-data class CreateVehicleRequestDto(
-    val licensePlate: String,
-    val licenseId: Long,
-    val make: String?,
-    val model: String?,
-    val isPMRAdapted: Boolean,
-    val allowsPets: Boolean
-)
-
-data class UpdateVehicleRequestDto(
-    val licensePlate: String,
-    val make: String?,
-    val model: String?,
-    val isPMRAdapted: Boolean,
-    val allowsPets: Boolean
-)
-
 // --- DTO para la Configuración del Sistema ---
 
 data class UpdateSystemConfigRequestDto(

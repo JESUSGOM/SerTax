@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/layout :: layout(~{::title}, ~{::div.content-fragment})}">
+<head>
+    <title>Gestión de Incidencias</title>
+</head>
+<body>
+<div class="content-fragment">
+    <div th:if="${successMessage}" style="color: green; margin-bottom: 15px;" th:text="${successMessage}"></div>
+    <div th:if="${errorMessage}" style="color: red; margin-bottom: 15px;" th:text="${errorMessage}"></div>
+
+    <table>
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Tipo</th>
+            <th>Estado</th>
+            <th>Reportado por</th>
+            <th>Fecha</th>
+            <th>Viaje ID</th>
+            <th>Acciones</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="incident : ${incidents}">
+            <td th:text="${incident.incidentId}">1</td>
+            <td th:text="${incident.type}">Queja</td>
+            <td th:text="${incident.status}">Abierta</td>
+            <td th:text="${incident.reporterType}">Usuario</td>
+            <td th:text="${#temporals.format(incident.timestamp, 'dd/MM/yy HH:mm')}">Fecha</td>
+            <td th:text="${incident.tripId ?: 'N/A'}">123</td>
+            <td>
+                <a th:href="@{/admin/incidents/{id}(id=${incident.incidentId})}">Ver Detalles</a>
+            </td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(incidents)}">
+            <td colspan="7" style="text-align: center;">No hay incidencias registradas.</td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>

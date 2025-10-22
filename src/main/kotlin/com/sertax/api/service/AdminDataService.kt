@@ -27,7 +27,6 @@ class AdminDataService(
 ) {
 
     // --- MÉTODOS DE LECTURA (GET) ---
-
     @Transactional(readOnly = true)
     fun getAllUsers(): List<User> {
         return userRepository.findAll()
@@ -49,21 +48,23 @@ class AdminDataService(
     }
 
     @Transactional(readOnly = true)
+    fun getAllSystemConfigs(): List<SystemConfig> {
+        return systemConfigRepository.findAll()
+    }
+
+    @Transactional(readOnly = true)
     fun getLicenseById(id: Long): License {
-        return licenseRepository.findByIdOrNull(id)
-            ?: throw NoSuchElementException("Licencia con ID $id no encontrada.")
+        return licenseRepository.findByIdOrNull(id) ?: throw NoSuchElementException("Licencia con ID $id no encontrada.")
     }
 
     @Transactional(readOnly = true)
     fun getDriverById(id: Long): Driver {
-        return driverRepository.findByIdOrNull(id)
-            ?: throw NoSuchElementException("Conductor con ID $id no encontrado.")
+        return driverRepository.findByIdOrNull(id) ?: throw NoSuchElementException("Conductor con ID $id no encontrado.")
     }
 
     @Transactional(readOnly = true)
     fun getVehicleById(id: Long): Vehicle {
-        return vehicleRepository.findByIdOrNull(id)
-            ?: throw NoSuchElementException("Vehículo con ID $id no encontrado.")
+        return vehicleRepository.findByIdOrNull(id) ?: throw NoSuchElementException("Vehículo con ID $id no encontrado.")
     }
 
     @Transactional(readOnly = true)
@@ -78,14 +79,10 @@ class AdminDataService(
             )
         }
     }
-
     @Transactional(readOnly = true)
     fun getDriverDetails(driverId: Long): DriverDetailDto {
-        val driver = driverRepository.findByIdOrNull(driverId)
-            ?: throw NoSuchElementException("Conductor con ID $driverId no encontrado")
-
+        val driver = driverRepository.findByIdOrNull(driverId) ?: throw NoSuchElementException("Conductor con ID $driverId no encontrado")
         val vehicle = vehicleRepository.findAll().find { it.license.licenseId == driver.license.licenseId }
-
         return DriverDetailDto(
             driverId = driver.driverId,
             name = driver.name,
@@ -108,7 +105,6 @@ class AdminDataService(
             }
         )
     }
-
     @Transactional(readOnly = true)
     fun getDashboardStats(): DashboardStatsDto {
         val allDriverStatuses = driverStatusRepository.findAll()
@@ -133,12 +129,10 @@ class AdminDataService(
         val recentActivity = DashboardStatsDto.RecentActivity(lastRegisteredUsers = recentUsers, lastCompletedTrips = recentTrips)
         return DashboardStatsDto(liveStats, recentActivity)
     }
-
     @Transactional(readOnly = true)
     fun getAllTrips(): List<TripHistoryDto> {
         val allTrips = tripRepository.findAll().sortedByDescending { it.requestTimestamp }
         val allRatings = ratingRepository.findAll().associateBy { it.trip.tripId }
-
         return allTrips.map { trip ->
             TripHistoryDto(
                 tripId = trip.tripId,
@@ -162,7 +156,6 @@ class AdminDataService(
             )
         }
     }
-
     @Transactional(readOnly = true)
     fun getAllIncidents(): List<IncidentListDto> {
         return incidentRepository.findAll().sortedByDescending { it.timestamp }.map { incident ->
@@ -176,14 +169,13 @@ class AdminDataService(
             )
         }
     }
-
     @Transactional(readOnly = true)
     fun getIncidentDetails(incidentId: Long): IncidentDetailDto {
-        val incident = incidentRepository.findByIdOrNull(incidentId)
-            ?: throw NoSuchElementException("Incidencia con ID $incidentId no encontrada")
+        val incident = incidentRepository.findByIdOrNull(incidentId) ?: throw NoSuchElementException("Incidencia con ID $incidentId no encontrada")
         val reporterName = when (incident.reporterType) {
             ReporterType.User -> userRepository.findByIdOrNull(incident.reporterId)?.name ?: "Usuario no encontrado"
             ReporterType.Driver -> driverRepository.findByIdOrNull(incident.reporterId)?.name ?: "Conductor no encontrado"
+            ReporterType.System -> "Sistema"
         }
         return IncidentDetailDto(
             incidentId = incident.incidentId,
@@ -205,18 +197,15 @@ class AdminDataService(
             }
         )
     }
-
     @Transactional(readOnly = true)
     fun getRatingStats(): RatingStatsDto {
         val allRatings = ratingRepository.findAll()
         if (allRatings.isEmpty()) {
             return RatingStatsDto(0, java.math.BigDecimal.ZERO, emptyMap())
         }
-
         val totalRatings = allRatings.size
         val average = allRatings.map { it.score }.average()
         val distribution = allRatings.groupBy { it.score }.mapValues { it.value.size.toLong() }
-
         return RatingStatsDto(
             totalRatings = totalRatings,
             overallAverageRating = java.math.BigDecimal(average).setScale(2, RoundingMode.HALF_UP),
@@ -225,14 +214,12 @@ class AdminDataService(
     }
 
     // --- MÉTODOS DE GESTIÓN (CRUD) ---
-
     fun createUser(request: CreateUserRequestDto): User {
         if (userRepository.findByEmail(request.email) != null) throw IllegalStateException("El email ya está en uso.")
         if (userRepository.findByPhoneNumber(request.phoneNumber) != null) throw IllegalStateException("El número de teléfono ya está en uso.")
         val newUser = User(name = request.name, email = request.email, phoneNumber = request.phoneNumber, passwordHash = passwordEncoder.encode(request.password), isActive = true)
         return userRepository.save(newUser)
     }
-
     fun updateUser(userId: Long, request: UpdateUserRequestDto): User {
         val user = userRepository.findByIdOrNull(userId) ?: throw NoSuchElementException("Usuario con ID $userId no encontrado.")
         userRepository.findByEmail(request.email)?.let { if (it.userId != userId) throw IllegalStateException("El email ya está en uso por otro usuario.") }
@@ -243,14 +230,12 @@ class AdminDataService(
         user.isActive = request.isActive
         return userRepository.save(user)
     }
-
     fun createLicense(request: CreateLicenseRequestDto): License {
         if (licenseRepository.findByLicenseNumber(request.licenseNumber) != null) throw IllegalStateException("El número de licencia ya existe.")
         val association = request.associationId?.let { if (it == -1L) null else associationRepository.findByIdOrNull(it) }
         val newLicense = License(licenseNumber = request.licenseNumber, association = association)
         return licenseRepository.save(newLicense)
     }
-
     fun updateLicense(id: Long, request: UpdateLicenseRequestDto): License {
         val license = licenseRepository.findByIdOrNull(id) ?: throw NoSuchElementException("Licencia con ID $id no encontrada.")
         licenseRepository.findByLicenseNumber(request.licenseNumber)?.let { if (it.licenseId != id) throw IllegalStateException("El número de licencia ya existe.") }
@@ -258,13 +243,11 @@ class AdminDataService(
         license.association = request.associationId?.let { if (it == -1L) null else associationRepository.findByIdOrNull(it) }
         return licenseRepository.save(license)
     }
-
     fun createDriver(request: CreateDriverRequestDto): Driver {
         val license = licenseRepository.findByIdOrNull(request.licenseId) ?: throw NoSuchElementException("Licencia con ID ${request.licenseId} no encontrada.")
         val newDriver = Driver(name = request.name, passwordHash = passwordEncoder.encode(request.password), role = request.role, license = license, isActive = request.isActive)
         return driverRepository.save(newDriver)
     }
-
     fun updateDriver(id: Long, request: UpdateDriverRequestDto): Driver {
         val driver = driverRepository.findByIdOrNull(id) ?: throw NoSuchElementException("Conductor con ID $id no encontrado.")
         driver.name = request.name
@@ -272,7 +255,6 @@ class AdminDataService(
         driver.isActive = request.isActive
         return driverRepository.save(driver)
     }
-
     fun createVehicle(request: CreateVehicleRequestDto): Vehicle {
         val license = licenseRepository.findByIdOrNull(request.licenseId) ?: throw NoSuchElementException("Licencia con ID ${request.licenseId} no encontrada.")
         if (vehicleRepository.findByLicensePlate(request.licensePlate) != null) throw IllegalStateException("La matrícula ya está registrada.")
@@ -280,7 +262,6 @@ class AdminDataService(
         val newVehicle = Vehicle(license = license, licensePlate = request.licensePlate, make = request.make, model = request.model, isPMRAdapted = request.isPMRAdapted, allowsPets = request.allowsPets)
         return vehicleRepository.save(newVehicle)
     }
-
     fun updateVehicle(id: Long, request: UpdateVehicleRequestDto): Vehicle {
         val vehicle = vehicleRepository.findByIdOrNull(id) ?: throw NoSuchElementException("Vehículo con ID $id no encontrado.")
         vehicleRepository.findByLicensePlate(request.licensePlate)?.let { if (it.vehicleId != id) throw IllegalStateException("La matrícula ya está en uso por otro vehículo.") }
@@ -293,9 +274,14 @@ class AdminDataService(
     }
 
     fun updateSystemConfig(key: String, request: UpdateSystemConfigRequestDto): SystemConfig {
-        val config = systemConfigRepository.findByIdOrNull(key)
-            ?: throw NoSuchElementException("Clave de configuración '$key' no encontrada.")
+        val config = systemConfigRepository.findByIdOrNull(key) ?: throw NoSuchElementException("Clave de configuración '$key' no encontrada.")
         config.configValue = request.configValue
         return systemConfigRepository.save(config)
+    }
+
+    fun updateIncidentStatus(id: Long, newStatus: IncidentStatus): Incident {
+        val incident = incidentRepository.findByIdOrNull(id) ?: throw NoSuchElementException("Incidencia con ID $id no encontrada.")
+        incident.status = newStatus
+        return incidentRepository.save(incident)
     }
 }

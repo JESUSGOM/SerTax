@@ -76,4 +76,18 @@ class NotificationService(
         messagingTemplate.convertAndSend(destination, payload)
         LOGGER.info("Notificando al usuario $userId sobre no comparecencia para el viaje ${trip.tripId}")
     }
+
+    /**
+     * Notifica al usuario que su viaje ha pasado a ser gestionado por una centralita.
+     */
+    fun notifyUserOfManualAssignment(userId: Long, trip: Trip) {
+        val destination = "/topic/user/$userId"
+        val payload = mapOf(
+            "type" to "TRIP_MANUAL_ASSIGNMENT",
+            "tripId" to trip.tripId,
+            "message" to "Todos nuestros conductores automáticos están ocupados. Hemos pasado tu petición a una de nuestras centralitas para que te asignen un taxi lo antes posible."
+        )
+        messagingTemplate.convertAndSend(destination, payload)
+        LOGGER.info("Notificando al usuario $userId que el viaje ${trip.tripId} ha pasado a asignación manual.")
+    }
 }

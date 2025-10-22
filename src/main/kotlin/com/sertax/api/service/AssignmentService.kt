@@ -57,11 +57,15 @@ class AssignmentService(
     }
 
     private fun handleNoDriverFound(trip: Trip) {
-        trip.driver = null // Asegurarse de que no quede ningún conductor asignado
-        trip.status = TripStatus.Cancelled
+        trip.driver = null
+        trip.status = TripStatus.PendingManualAssignment // <-- MODIFICADO
         val savedTrip = tripRepository.save(trip)
 
-        notificationService.notifyUserOfTripUpdate(savedTrip.user.userId, savedTrip)
-        LOGGER.warning("No se encontraron conductores disponibles para el viaje ${trip.tripId}.")
+        // Notificamos al usuario que su petición ha pasado a una centralita
+        notificationService.notifyUserOfManualAssignment(savedTrip.user.userId, savedTrip)
+
+        // TODO: Notificar al BackOffice en tiempo real (vía WebSockets) que hay un nuevo viaje manual.
+
+        LOGGER.warning("No se encontraron conductores. El viaje ${trip.tripId} pasa a asignación manual.")
     }
 }

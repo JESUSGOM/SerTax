@@ -80,5 +80,6 @@ enum class TripStatus {
     InProgress,
     Completed,
     Cancelled,
-    NoShow // <-- AÑADIDO
+    NoShow,
+    PendingManualAssignment
 }

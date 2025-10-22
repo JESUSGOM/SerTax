@@ -5,6 +5,7 @@ import com.sertax.api.model.*
 import com.sertax.api.repository.*
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.repository.findByIdOrNull
+import org.springframework.security.core.userdetails.UsernameNotFoundException
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -23,7 +24,9 @@ class AdminDataService(
     private val licenseRepository: LicenseRepository,
     private val associationRepository: AssociationRepository,
     private val systemConfigRepository: SystemConfigRepository,
-    private val passwordEncoder: PasswordEncoder
+    private val passwordEncoder: PasswordEncoder,
+    private val systemAdminRepository: SystemAdminRepository,
+    private val notificationService: NotificationService
 ) {
 
     // --- MÉTODOS DE LECTURA (GET) ---
@@ -283,5 +286,63 @@ class AdminDataService(
         val incident = incidentRepository.findByIdOrNull(id) ?: throw NoSuchElementException("Incidencia con ID $id no encontrada.")
         incident.status = newStatus
         return incidentRepository.save(incident)
+    }
+
+    // --- MÉTODOS DE LECTURA (GET) ---
+    @Transactional(readOnly = true)
+    fun getPendingManualTrips(): List<Trip> {
+        return tripRepository.findByStatus(TripStatus.PendingManualAssignment)
+    }
+
+    @Transactional(readOnly = true)
+    fun getAvailableDriversForAssociation(adminUsername: String): List<Driver> {
+        val admin = systemAdminRepository.findByUsername(adminUsername)
+            ?: throw UsernameNotFoundException("Administrador no encontrado")
+
+        // Los perfiles municipales pueden ver todos los conductores disponibles de todas las asociaciones
+        if (admin.role == AdminRole.AdminMunicipal || admin.role == AdminRole.GestorMunicipal) {
+            return driverRepository.findByIsActiveTrueAndDriverStatus_CurrentStatusIn(
+                listOf(DriverRealtimeStatus.Free, DriverRealtimeStatus.AtStop)
+            )
+        }
+
+        // El perfil de Asociación solo ve sus propios conductores disponibles
+        if (admin.role == AdminRole.Asociacion && admin.association != null) {
+            return driverRepository.findByIsActiveTrueAndLicense_Association_AssociationIdAndDriverStatus_CurrentStatusIn(
+                admin.association.associationId,
+                listOf(DriverRealtimeStatus.Free, DriverRealtimeStatus.AtStop)
+            )
+        }
+
+        return emptyList()
+    }
+
+    // --- MÉTODOS DE GESTIÓN (CRUD) ---
+    fun assignDriverManually(tripId: Long, driverId: Long, adminUsername: String): Trip {
+        val trip = tripRepository.findByIdOrNull(tripId)
+            ?: throw NoSuchElementException("Viaje con ID $tripId no encontrado.")
+
+        if (trip.status != TripStatus.PendingManualAssignment) {
+            throw IllegalStateException("Este viaje no está pendiente de asignación manual.")
+        }
+
+        val driver = driverRepository.findByIdOrNull(driverId)
+            ?: throw NoSuchElementException("Conductor con ID $driverId no encontrado.")
+
+        // TODO: En un futuro, añadir validación de permisos para asegurar que el admin
+        // puede asignar a este conductor (ej. misma asociación).
+
+        trip.driver = driver
+        trip.status = TripStatus.Assigned // El viaje vuelve al flujo normal, esperando aceptación del conductor
+        trip.assignmentTimestamp = java.time.OffsetDateTime.now()
+        val savedTrip = tripRepository.save(trip)
+
+        // Notificar al conductor de la nueva asignación
+        notificationService.notifyDriverOfNewTrip(driver.driverId, savedTrip)
+
+        // Notificar al usuario que ya se le ha asignado un taxi
+        notificationService.notifyUserOfTripUpdate(savedTrip.user.userId, savedTrip)
+
+        return savedTrip
     }
 }

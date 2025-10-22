@@ -16,4 +16,9 @@ interface TripRepository : JpaRepository<Trip, Long> {
      * ordenados por su fecha de finalización descendente.
      */
     fun findAllByStatusOrderByCompletionTimestampDesc(status: TripStatus, pageable: Pageable): List<Trip>
+
+    /**
+     * Busca todos los viajes que se encuentran en un estado específico.
+     */
+    fun findByStatus(status: TripStatus): List<Trip>
 }

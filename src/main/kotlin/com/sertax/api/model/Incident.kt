@@ -34,7 +34,7 @@ data class Incident(
 )
 
 enum class ReporterType {
-    User, Driver
+    User, Driver, System // <-- AÑADIDO
 }
 
 enum class IncidentStatus {

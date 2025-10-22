@@ -2,22 +2,25 @@ package com.sertax.api.controller
 
 import com.sertax.api.dto.trip.CreateTripRequest
 import com.sertax.api.dto.trip.TripEstimateRequest
+import com.sertax.api.model.ReporterType
+import com.sertax.api.repository.UserRepository
 import com.sertax.api.service.CalculationService
 import com.sertax.api.service.TripService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/trips")
 class TripController(
     private val tripService: TripService,
-    private val calculationService: CalculationService
+    private val calculationService: CalculationService,
+    private val userRepository: UserRepository
 ) {
 
-    /**
-     * Endpoint para obtener una estimación de coste y tiempo antes de solicitar el viaje.
-     */
+    // ... (endpoints /estimate y / sin cambios) ...
     @PostMapping("/estimate")
     fun estimateTrip(@RequestBody request: TripEstimateRequest): ResponseEntity<*> {
         return try {
@@ -27,14 +30,10 @@ class TripController(
             )
             ResponseEntity.ok(estimate)
         } catch (e: Exception) {
-            ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                .body(mapOf("error" to "No se pudo calcular la ruta en este momento. Inténtalo de nuevo más tarde."))
+            ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(mapOf("error" to "No se pudo calcular la ruta en este momento."))
         }
     }
 
-    /**
-     * Endpoint para solicitar un nuevo viaje.
-     */
     @PostMapping
     fun requestTrip(@RequestBody request: CreateTripRequest): ResponseEntity<*> {
         return try {
@@ -46,16 +45,15 @@ class TripController(
     }
 
     /**
-     * Endpoint para cancelar un viaje que está en curso.
+     * Endpoint para que el usuario autenticado cancele un viaje.
      */
     @PostMapping("/{tripId}/cancel")
-    fun cancelTrip(@PathVariable tripId: Long): ResponseEntity<*> {
+    fun cancelTrip(@PathVariable tripId: Long, @AuthenticationPrincipal userDetails: UserDetails): ResponseEntity<*> {
         return try {
-            val trip = tripService.cancelTrip(tripId)
+            val user = userRepository.findByEmail(userDetails.username) ?: throw SecurityException("Usuario no encontrado")
+            val trip = tripService.cancelTrip(tripId, user.userId, ReporterType.User)
             ResponseEntity.ok(mapOf("message" to "Viaje cancelado", "tripId" to trip.tripId, "newStatus" to trip.status))
-        } catch (e: NoSuchElementException) {
-            ResponseEntity.status(HttpStatus.NOT_FOUND).body(mapOf("error" to e.message))
-        } catch (e: IllegalStateException) {
+        } catch (e: Exception) {
             ResponseEntity.badRequest().body(mapOf("error" to e.message))
         }
     }

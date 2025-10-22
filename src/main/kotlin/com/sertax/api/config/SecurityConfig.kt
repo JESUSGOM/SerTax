@@ -9,19 +9,13 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
-import com.sertax.api.config.JwtProvider
 
-@Configuration // <-- Esta anotación es fundamental
+@Configuration
 @EnableWebSecurity
 class SecurityConfig(
     private val jwtAuthFilter: JwtAuthenticationFilter
 ) {
 
-    /**
-     * ESTE ES EL BEAN QUE FALTA.
-     * Le dice a Spring que cuando alguien necesite un PasswordEncoder,
-     * debe crear y usar una instancia de BCryptPasswordEncoder.
-     */
     @Bean
     fun passwordEncoder(): PasswordEncoder {
         return BCryptPasswordEncoder()
@@ -34,6 +28,7 @@ class SecurityConfig(
             .authorizeHttpRequests { auth ->
                 auth
                     .requestMatchers("/api/auth/**").permitAll()
+                    .requestMatchers("/api/whatsapp/webhook").permitAll() // <-- AÑADIDO: Permite el acceso al webhook
                     .anyRequest().authenticated()
             }
             .sessionManagement { session ->

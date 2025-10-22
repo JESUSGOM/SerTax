@@ -13,51 +13,55 @@ import java.util.logging.Logger
 class AssignmentService(
     private val geolocationService: GeolocationService,
     private val tripRepository: TripRepository,
-    private val notificationService: NotificationService // <-- INYECTADO
+    private val notificationService: NotificationService
 ) {
     companion object {
         private val LOGGER = Logger.getLogger(AssignmentService::class.java.name)
     }
 
     @Transactional
-    fun findAndAssignDriverForTrip(trip: Trip, needsPMR: Boolean, withPet: Boolean) {
-        LOGGER.info("Iniciando búsqueda de conductor para viaje ${trip.tripId} con filtros PMR=$needsPMR, Pet=$withPet")
+    fun findAndAssignDriverForTrip(
+        trip: Trip,
+        needsPMR: Boolean,
+        withPet: Boolean,
+        excludeDriverIds: List<Long> = emptyList() // <-- AÑADIDO: Parámetro de exclusión
+    ) {
+        LOGGER.info("Iniciando búsqueda para viaje ${trip.tripId}, excluyendo conductores: $excludeDriverIds")
 
-        val candidates = findCandidates(trip, needsPMR, withPet)
+        val candidates = findCandidates(trip, needsPMR, withPet, excludeDriverIds)
 
         if (candidates.isNotEmpty()) {
             val driverToNotify = candidates.first()
 
-            // Asignamos el conductor al viaje para reservarlo y cambiamos el estado
             trip.driver = driverToNotify
             trip.status = TripStatus.Assigned
             tripRepository.save(trip)
 
-            // Enviamos la notificación al conductor vía WebSocket
             notificationService.notifyDriverOfNewTrip(driverToNotify.driverId, trip)
 
-            LOGGER.info("Viaje ${trip.tripId} asignado al conductor ${driverToNotify.driverId}. Esperando aceptación.")
+            LOGGER.info("Viaje ${trip.tripId} ofrecido al conductor ${driverToNotify.driverId}. Esperando aceptación.")
         } else {
             handleNoDriverFound(trip)
         }
     }
 
-    private fun findCandidates(trip: Trip, needsPMR: Boolean, withPet: Boolean): List<Driver> {
+    private fun findCandidates(trip: Trip, needsPMR: Boolean, withPet: Boolean, excludeDriverIds: List<Long>): List<Driver> {
         val candidatesAtStop = geolocationService.findAvailableDriversNearby(
-            trip.pickupLocation, 1000.0, DriverRealtimeStatus.AtStop, needsPMR, withPet
+            trip.pickupLocation, 1000.0, DriverRealtimeStatus.AtStop, needsPMR, withPet, excludeDriverIds
         )
         if (candidatesAtStop.isNotEmpty()) return candidatesAtStop
 
         return geolocationService.findAvailableDriversNearby(
-            trip.pickupLocation, 1500.0, DriverRealtimeStatus.Free, needsPMR, withPet
+            trip.pickupLocation, 1500.0, DriverRealtimeStatus.Free, needsPMR, withPet, excludeDriverIds
         )
     }
 
     private fun handleNoDriverFound(trip: Trip) {
+        trip.driver = null // Asegurarse de que no quede ningún conductor asignado
         trip.status = TripStatus.Cancelled
         val savedTrip = tripRepository.save(trip)
-        // Notificamos al usuario que no se encontró conductor
+
         notificationService.notifyUserOfTripUpdate(savedTrip.user.userId, savedTrip)
-        LOGGER.warning("No se encontraron conductores para el viaje ${trip.tripId}.")
+        LOGGER.warning("No se encontraron conductores disponibles para el viaje ${trip.tripId}.")
     }
 }

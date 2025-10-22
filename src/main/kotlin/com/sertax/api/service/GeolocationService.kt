@@ -17,6 +17,7 @@ class GeolocationService(
         status: DriverRealtimeStatus,
         needsPMR: Boolean,
         withPet: Boolean,
+        excludeDriverIds: List<Long>, // <-- AÑADIDO: Lista de IDs a excluir
         limit: Int = 5
     ): List<Driver> {
         var queryString = """
@@ -37,6 +38,10 @@ class GeolocationService(
         if (withPet) {
             queryString += " AND v.allowspets = TRUE"
         }
+        // Añadimos la condición para excluir conductores si la lista no está vacía
+        if (excludeDriverIds.isNotEmpty()) {
+            queryString += " AND d.driver_id NOT IN (:excludeIds)"
+        }
         queryString += """
             ORDER BY ST_Distance(ds.current_location::geography, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography)
             LIMIT :limit
@@ -49,6 +54,10 @@ class GeolocationService(
         query.setParameter("radius", radiusInMeters)
         query.setParameter("status", status.name)
         query.setParameter("limit", limit)
+
+        if (excludeDriverIds.isNotEmpty()) {
+            query.setParameter("excludeIds", excludeDriverIds)
+        }
 
         @Suppress("UNCHECKED_CAST")
         return query.resultList as List<Driver>

@@ -9,6 +9,7 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.math.RoundingMode
 
 @Service
 class AdminDataService(
@@ -17,7 +18,8 @@ class AdminDataService(
     private val tripRepository: TripRepository,
     private val driverStatusRepository: DriverStatusRepository,
     private val userRepository: UserRepository,
-    private val incidentRepository: IncidentRepository // <-- INYECTADO
+    private val incidentRepository: IncidentRepository,
+    private val ratingRepository: RatingRepository // <-- INYECTADO
 ) {
 
     @Transactional(readOnly = true)
@@ -37,9 +39,7 @@ class AdminDataService(
     fun getDriverDetails(driverId: Long): DriverDetailDto {
         val driver = driverRepository.findByIdOrNull(driverId)
             ?: throw NoSuchElementException("Conductor con ID $driverId no encontrado")
-
         val vehicle = vehicleRepository.findAll().find { it.license.licenseId == driver.license.licenseId }
-
         return DriverDetailDto(
             driverId = driver.driverId,
             name = driver.name,
@@ -64,8 +64,39 @@ class AdminDataService(
     }
 
     @Transactional(readOnly = true)
+    fun getDashboardStats(): DashboardStatsDto {
+        val allDriverStatuses = driverStatusRepository.findAll()
+        val allTrips = tripRepository.findAll()
+        val liveStats = DashboardStatsDto.LiveStats(
+            activeDrivers = allDriverStatuses.count { it.currentStatus != DriverRealtimeStatus.OutOfService },
+            driversAtStop = allDriverStatuses.count { it.currentStatus == DriverRealtimeStatus.AtStop },
+            driversOnPickup = allTrips.count { it.status == TripStatus.EnRoute },
+            tripsInProgress = allTrips.count { it.status == TripStatus.InProgress }
+        )
+        val recentUsers = userRepository.findAllByOrderByRegistrationDateDesc(PageRequest.of(0, 5)).map { user ->
+            RecentUserDto(userId = user.userId, name = user.name, registrationDate = user.registrationDate)
+        }
+        val recentTrips = tripRepository.findAllByStatusOrderByCompletionTimestampDesc(TripStatus.Completed, PageRequest.of(0, 5)).map { trip ->
+            RecentTripDto(
+                tripId = trip.tripId,
+                pickupAddress = trip.pickupAddress,
+                driverName = trip.driver?.name,
+                completionTimestamp = trip.completionTimestamp!!
+            )
+        }
+        val recentActivity = DashboardStatsDto.RecentActivity(lastRegisteredUsers = recentUsers, lastCompletedTrips = recentTrips)
+        return DashboardStatsDto(liveStats, recentActivity)
+    }
+
+    /**
+     * Devuelve el historial de viajes, incluyendo la puntuación de cada uno si existe.
+     */
+    @Transactional(readOnly = true)
     fun getAllTrips(): List<TripHistoryDto> {
-        return tripRepository.findAll().sortedByDescending { it.requestTimestamp }.map { trip ->
+        val allTrips = tripRepository.findAll().sortedByDescending { it.requestTimestamp }
+        val allRatings = ratingRepository.findAll().associateBy { it.trip.tripId }
+
+        return allTrips.map { trip ->
             TripHistoryDto(
                 tripId = trip.tripId,
                 status = trip.status.name,
@@ -73,6 +104,7 @@ class AdminDataService(
                 pickupAddress = trip.pickupAddress,
                 destinationAddress = trip.destinationAddress,
                 finalCost = trip.finalCost,
+                rating = allRatings[trip.tripId]?.score, // <-- ASIGNAMOS LA PUNTUACIÓN
                 user = TripHistoryDto.UserInfo(
                     userId = trip.user.userId,
                     name = trip.user.name
@@ -89,46 +121,6 @@ class AdminDataService(
     }
 
     @Transactional(readOnly = true)
-    fun getDashboardStats(): DashboardStatsDto {
-        val allDriverStatuses = driverStatusRepository.findAll()
-        val allTrips = tripRepository.findAll()
-
-        val liveStats = DashboardStatsDto.LiveStats(
-            activeDrivers = allDriverStatuses.count { it.currentStatus != DriverRealtimeStatus.OutOfService },
-            driversAtStop = allDriverStatuses.count { it.currentStatus == DriverRealtimeStatus.AtStop },
-            driversOnPickup = allTrips.count { it.status == TripStatus.EnRoute },
-            tripsInProgress = allTrips.count { it.status == TripStatus.InProgress }
-        )
-
-        val recentUsers = userRepository.findAllByOrderByRegistrationDateDesc(PageRequest.of(0, 5)).map { user ->
-            RecentUserDto(
-                userId = user.userId,
-                name = user.name,
-                registrationDate = user.registrationDate
-            )
-        }
-
-        val recentTrips = tripRepository.findAllByStatusOrderByCompletionTimestampDesc(TripStatus.Completed, PageRequest.of(0, 5)).map { trip ->
-            RecentTripDto(
-                tripId = trip.tripId,
-                pickupAddress = trip.pickupAddress,
-                driverName = trip.driver?.name,
-                completionTimestamp = trip.completionTimestamp!!
-            )
-        }
-
-        val recentActivity = DashboardStatsDto.RecentActivity(
-            lastRegisteredUsers = recentUsers,
-            lastCompletedTrips = recentTrips
-        )
-
-        return DashboardStatsDto(liveStats, recentActivity)
-    }
-
-    /**
-     * Devuelve una lista de todas las incidencias para el BackOffice.
-     */
-    @Transactional(readOnly = true)
     fun getAllIncidents(): List<IncidentListDto> {
         return incidentRepository.findAll().sortedByDescending { it.timestamp }.map { incident ->
             IncidentListDto(
@@ -142,20 +134,14 @@ class AdminDataService(
         }
     }
 
-    /**
-     * Devuelve los detalles completos de una incidencia, incluyendo el nombre de quien la reportó.
-     */
     @Transactional(readOnly = true)
     fun getIncidentDetails(incidentId: Long): IncidentDetailDto {
         val incident = incidentRepository.findByIdOrNull(incidentId)
             ?: throw NoSuchElementException("Incidencia con ID $incidentId no encontrada")
-
-        // Busca el nombre de quien reportó, ya sea un usuario o un conductor
         val reporterName = when (incident.reporterType) {
             ReporterType.User -> userRepository.findByIdOrNull(incident.reporterId)?.name ?: "Usuario no encontrado"
             ReporterType.Driver -> driverRepository.findByIdOrNull(incident.reporterId)?.name ?: "Conductor no encontrado"
         }
-
         return IncidentDetailDto(
             incidentId = incident.incidentId,
             type = incident.type,
@@ -174,6 +160,27 @@ class AdminDataService(
                     destinationAddress = trip.destinationAddress
                 )
             }
+        )
+    }
+
+    /**
+     * Calcula y devuelve estadísticas agregadas sobre todas las valoraciones del sistema.
+     */
+    @Transactional(readOnly = true)
+    fun getRatingStats(): RatingStatsDto {
+        val allRatings = ratingRepository.findAll()
+        if (allRatings.isEmpty()) {
+            return RatingStatsDto(0, java.math.BigDecimal.ZERO, emptyMap())
+        }
+
+        val totalRatings = allRatings.size
+        val average = allRatings.map { it.score }.average()
+        val distribution = allRatings.groupBy { it.score }.mapValues { it.value.size.toLong() }
+
+        return RatingStatsDto(
+            totalRatings = totalRatings,
+            overallAverageRating = java.math.BigDecimal(average).setScale(2, RoundingMode.HALF_UP),
+            ratingDistribution = distribution
         )
     }
 }

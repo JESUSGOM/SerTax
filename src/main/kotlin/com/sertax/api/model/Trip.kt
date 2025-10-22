@@ -10,7 +10,6 @@ import java.time.OffsetDateTime
 @Entity
 @Table(name = "trips")
 data class Trip(
-    // ... (campos existentes sin cambios) ...
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "tripid")
@@ -74,13 +73,12 @@ enum class RequestChannel {
     App, Web, WhatsApp
 }
 
-// --- ENUM MODIFICADO ---
 enum class TripStatus {
-    Requested,      // Usuario solicita
-    Assigned,       // Conductor asignado, pendiente de aceptar
-    EnRoute,        // Conductor aceptó y va a recoger
-    InProgress,     // Conductor recogió al pasajero y el viaje ha comenzado
-    Completed,      // Viaje finalizado
-    Cancelled,      // Cancelado (por usuario o por no encontrar conductor)
-    NoShow          // El usuario no apareció
+    Requested,
+    Assigned,
+    EnRoute,
+    InProgress,
+    Completed,
+    Cancelled,
+    NoShow // <-- AÑADIDO
 }

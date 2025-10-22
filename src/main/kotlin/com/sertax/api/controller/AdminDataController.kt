@@ -61,4 +61,13 @@ class AdminDataController(private val adminDataService: AdminDataService) {
             ResponseEntity.notFound().build<String>()
         }
     }
+
+    /**
+     * Devuelve estadísticas agregadas sobre las valoraciones de los viajes.
+     */
+    @GetMapping("/ratings/stats")
+    fun getRatingStats(): ResponseEntity<*> {
+        val stats = adminDataService.getRatingStats()
+        return ResponseEntity.ok(stats)
+    }
 }

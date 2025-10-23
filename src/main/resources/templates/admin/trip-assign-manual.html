@@ -30,7 +30,7 @@
         <div style="margin-bottom: 15px;">
             <label for="driverId">Seleccione un conductor disponible:</label><br>
             <select id="driverId" name="driverId" required style="width: 300px; padding: 8px;">
-                <option value="">-- Conductores de su asociación --</option>
+                <option value="">-- Conductores Disponibles --</option>
                 <option th:each="driver : ${drivers}"
                         th:value="${driver.driverId}"
                         th:text="${driver.name} + ' (' + ${driver.license.licenseNumber} + ')'">

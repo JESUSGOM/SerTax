@@ -1,38 +1,41 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/layout :: layout(~{::title}, ~{::div.content-fragment})}">
-<head>
-    <title>Dashboard</title>
-</head>
-<body>
-<div class="content-fragment">
-    <div th:if="${successMessage}" style="color: green; border: 1px solid green; background-color: #d4edda; padding: 10px; border-radius: 5px; margin-bottom: 20px;" th:text="${successMessage}"></div>
-    <div th:if="${errorMessage}" style="color: red; border: 1px solid red; background-color: #f8d7da; padding: 10px; border-radius: 5px; margin-bottom: 20px;" th:text="${errorMessage}"></div>
+    <head>
+        <title>Dashboard</title>
+    </head>
+    <body>
+        <div class="content-fragment">
+            <div th:if="${successMessage}" style="color: green; border: 1px solid green; background-color: #d4edda; padding: 10px; border-radius: 5px; margin-bottom: 20px;" th:text="${successMessage}"></div>
+            <div th:if="${errorMessage}" style="color: red; border: 1px solid red; background-color: #f8d7da; padding: 10px; border-radius: 5px; margin-bottom: 20px;" th:text="${errorMessage}"></div>
 
-    <div th:if="${!#lists.isEmpty(pendingTrips)}" style="background-color: #fff3cd; border: 1px solid #ffeeba; padding: 20px; border-radius: 5px; margin-bottom: 20px;">
-        <h3>Viajes Pendientes de Asignación Manual</h3>
-        <p>Los siguientes viajes no pudieron ser asignados automáticamente. Por favor, asigne un conductor.</p>
-        <table>
-            <thead>
-            <tr>
-                <th>ID Viaje</th>
-                <th>Usuario</th>
-                <th>Recogida</th>
-                <th>Acción</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="trip : ${pendingTrips}">
-                <td th:text="${trip.tripId}"></td>
-                <td th:text="${trip.user.name}"></td>
-                <td th:text="${trip.pickupAddress}"></td>
-                <td><a th:href="@{/admin/trips/assign/{id}(id=${trip.tripId})}">Asignar Conductor</a></td>
-            </tr>
-            </tbody>
-        </table>
-    </div>
+            <div th:if="${!#lists.isEmpty(pendingTrips)}" style="background-color: #fff3cd; border: 1px solid #ffeeba; padding: 20px; border-radius: 5px; margin-bottom: 20px;">
+                <h3>Viajes Pendientes de Asignación Manual</h3>
+                <p>Los siguientes viajes no pudieron ser asignados automáticamente. Por favor, asigne un conductor.</p>
+                <table>
+                    <thead>
+                    <tr>
+                        <th>ID Viaje</th>
+                        <th>Usuario</th>
+                        <th>Recogida</th>
+                        <th>Acción</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="trip : ${pendingTrips}">
+                        <td th:text="${trip.tripId}"></td>
+                        <td th:text="${trip.user.name}"></td>
+                        <td th:text="${trip.pickupAddress}"></td>
+                        <td><a th:href="@{/admin/trips/assign/{id}(id=${trip.tripId})}">Asignar Conductor</a></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
 
-    <h2>Estado del Servicio en Tiempo Real</h2>
-    <h2 style="margin-top: 40px;">Actividad Reciente</h2>
-</div>
-</body>
+            <h2>Estado del Servicio en Tiempo Real</h2>
+            <!-- ... (código de las tarjetas de estadísticas) ... -->
+
+            <h2 style="margin-top: 40px;">Actividad Reciente</h2>
+            <!-- ... (código de las tablas de actividad) ... -->
+        </div>
+    </body>
 </html>

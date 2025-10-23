@@ -21,4 +21,9 @@ interface TripRepository : JpaRepository<Trip, Long> {
      * Busca todos los viajes que se encuentran en un estado específico.
      */
     fun findByStatus(status: TripStatus): List<Trip>
+    
+    /**
+     * Busca viajes pendientes de asignación manual para una asociación específica.
+     */
+    fun findByStatusAndManualAssignmentAssociation(status: TripStatus, association: Association): List<Trip>
 }

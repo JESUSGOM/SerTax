@@ -294,11 +294,10 @@ class AdminWebController(
         return try {
             val trip = tripRepository.findByIdOrNull(tripId) ?: throw NoSuchElementException()
             val availableDrivers = adminDataService.getAvailableDriversForAssociation(principal.name)
-            
             model.addAttribute("trip", trip)
             model.addAttribute("drivers", availableDrivers)
             model.addAttribute("pageTitle", "Asignación Manual de Viaje")
-            return "admin/trip-assign-manual"
+            "admin/trip-assign-manual"
         } catch (e: Exception) {
             "redirect:/admin/dashboard"
         }

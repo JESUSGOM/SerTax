@@ -17,6 +17,7 @@ class AssignmentService(
 ) {
     companion object {
         private val LOGGER = Logger.getLogger(AssignmentService::class.java.name)
+        private const val LAS_ASSOC_KEY = "LAST_MANUAL_ASSIGNMENT_ASSOC_ID"
     }
 
     @Transactional
@@ -27,18 +28,14 @@ class AssignmentService(
         excludeDriverIds: List<Long> = emptyList() // <-- AÑADIDO: Parámetro de exclusión
     ) {
         LOGGER.info("Iniciando búsqueda para viaje ${trip.tripId}, excluyendo conductores: $excludeDriverIds")
-
         val candidates = findCandidates(trip, needsPMR, withPet, excludeDriverIds)
 
         if (candidates.isNotEmpty()) {
             val driverToNotify = candidates.first()
-
             trip.driver = driverToNotify
             trip.status = TripStatus.Assigned
             tripRepository.save(trip)
-
             notificationService.notifyDriverOfNewTrip(driverToNotify.driverId, trip)
-
             LOGGER.info("Viaje ${trip.tripId} ofrecido al conductor ${driverToNotify.driverId}. Esperando aceptación.")
         } else {
             handleNoDriverFound(trip)
@@ -55,17 +52,36 @@ class AssignmentService(
             trip.pickupLocation, 1500.0, DriverRealtimeStatus.Free, needsPMR, withPet, excludeDriverIds
         )
     }
-
+    
     private fun handleNoDriverFound(trip: Trip) {
         trip.driver = null
-        trip.status = TripStatus.PendingManualAssignment // <-- MODIFICADO
+        trip.status = TripStatus.PendingManualAssignment
+        
+        // --- LÓGICA DE BALANCEO (ROUND-ROBIN) ---
+        val associations = associationRepository.findAll().sortedBy { it.associationId }
+        if (associations.isNotEmpty()) {
+            val lastAssignedConfig = systemConfigRepository.findByIdOrNull(LAST_ASSOC_KEY)
+                ?: SystemConfig(LAST_ASSOC_KEY, "0", "ID de la última asociación asignada.")
+            
+            val lastAssignedId = lastAssignedConfig.configValue.toLongOrNull() ?: 0L
+            val lastIndex = associations.indexOfFirst { it.associationId == lastAssignedId }
+            
+            val nextIndex = (lastIndex + 1) % associations.size
+            val nextAssociation = associations[nextIndex]
+            
+            // Asignamos el viaje a la siguiente asociación en la rotación
+            trip.manualAssignmentAssociation = nextAssociation
+            
+            // Guardamos el ID de la asociación que acaba de recibir el viaje
+            lastAssignedConfig.configValue = nextAssociation.associationId.toString()
+            systemConfigRepository.save(lastAssignedConfig)
+            
+            LOGGER.info("Viaje ${trip.tripId} asignado a la asociación '${nextAssociation.name}' para gestión manual.")
+        } else {
+            LOGGER.warning("No hay asociaciones configuradas para la asignación manual.")
+        }
+        
         val savedTrip = tripRepository.save(trip)
-
-        // Notificamos al usuario que su petición ha pasado a una centralita
         notificationService.notifyUserOfManualAssignment(savedTrip.user.userId, savedTrip)
-
-        // TODO: Notificar al BackOffice en tiempo real (vía WebSockets) que hay un nuevo viaje manual.
-
-        LOGGER.warning("No se encontraron conductores. El viaje ${trip.tripId} pasa a asignación manual.")
     }
 }

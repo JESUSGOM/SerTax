@@ -76,7 +76,7 @@ class NotificationService(
         messagingTemplate.convertAndSend(destination, payload)
         LOGGER.info("Notificando al usuario $userId sobre no comparecencia para el viaje ${trip.tripId}")
     }
-
+    
     /**
      * Notifica al usuario que su viaje ha pasado a ser gestionado por una centralita.
      */

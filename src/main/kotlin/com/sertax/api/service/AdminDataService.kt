@@ -345,4 +345,45 @@ class AdminDataService(
 
         return savedTrip
     }
+    
+    @Transactional(readOnly = true)
+    fun getPendingManualTrips(adminUsername: String): List<Trip> {
+        val admin = systemAdminRepository.findByUsername(adminUsername)
+            ?: throw UsernameNotFoundException("Administrador no encontrado")
+        
+        if (admin.role == AdminRole.AdminMunicipal || admin.role == AdminRole.GestorMunicipal) {
+            return tripRepository.findByStatus(TripStatus.PendingManualAssignment)
+        }
+        
+        if (admin.role == AdminRole.Asociacion && admin.association != null) {
+            return tripRepository.findByStatusAndManualAssignmentAssociation(
+                TripStatus.PendingManualAssignment,
+                admin.association
+            )
+        }
+        return emptyList()
+    }
+    
+    // --- MÉTODOS DE GESTIÓN (CRUD) ---
+    fun assignDriverManually(tripId: Long, driverId: Long, adminUsername: String): Trip {
+        val trip = tripRepository.findByIdOrNull(tripId)
+            ?: throw NoSuchElementException("Viaje con ID $tripId no encontrado.")
+        
+        if (trip.status != TripStatus.PendingManualAssignment) {
+            throw IllegalStateException("Este viaje no está pendiente de asignación manual.")
+        }
+        
+        val driver = driverRepository.findByIdOrNull(driverId)
+            ?: throw NoSuchElementException("Conductor con ID $driverId no encontrado.")
+        
+        trip.driver = driver
+        trip.status = TripStatus.Assigned
+        trip.assignmentTimestamp = java.time.OffsetDateTime.now()
+        val savedTrip = tripRepository.save(trip)
+        
+        notificationService.notifyDriverOfNewTrip(driver.driverId, savedTrip)
+        notificationService.notifyUserOfTripUpdate(savedTrip.user.userId, savedTrip)
+        
+        return savedTrip
+    }
 }

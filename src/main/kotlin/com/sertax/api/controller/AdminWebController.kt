@@ -38,7 +38,7 @@ class AdminWebController(
     @GetMapping("/dashboard")
     fun showDashboardPage(model: Model, principal: Principal): String {
         // El dashboard es visible para todos los roles logueados
-        return handleAdminGetAction(principal, null, model, "admin/dashboard") { // failureRedirect eliminado
+        return handleAdminGetAction(principal, null, model, "admin/dashboard") {
             model.addAttribute("dashboardStats", adminDataService.getDashboardStats())
             // Pasamos el nombre del admin para que el servicio pueda filtrar por asociación
             model.addAttribute("pendingTrips", adminDataService.getPendingManualTrips(principal.name))
@@ -50,7 +50,7 @@ class AdminWebController(
     @GetMapping("/users") // Corregido: Paréntesis añadido
     fun showUsersPage(model: Model, principal: Principal): String {
         // Solo AdminMunicipal puede ver usuarios
-        return handleAdminGetAction(principal, AdminRole.AdminMunicipal, model, "admin/users") { // failureRedirect eliminado
+        return handleAdminGetAction(principal, AdminRole.AdminMunicipal, model, "admin/users") {
             model.addAttribute("users", adminDataService.getAllUsers()) // getAllUsers no necesita principal.name
             model.addAttribute("pageTitle", "Gestión de Usuarios")
         }
@@ -58,7 +58,7 @@ class AdminWebController(
     @GetMapping("/users/new")
     fun showCreateUserForm(model: Model, principal: Principal): String {
         // Solo AdminMunicipal puede crear usuarios
-        return handleAdminGetAction(principal, AdminRole.AdminMunicipal, model, "admin/user-form") { // failureRedirect eliminado
+        return handleAdminGetAction(principal, AdminRole.AdminMunicipal, model, "admin/user-form") {
             model.addAttribute("userDto", CreateUserRequestDto("", "", "", ""))
             model.addAttribute("pageTitle", "Crear Nuevo Usuario")
             model.addAttribute("formAction", "/admin/users/save")
@@ -75,9 +75,9 @@ class AdminWebController(
     @GetMapping("/users/edit/{id}")
     fun showEditUserForm(@PathVariable id: Long, model: Model, principal: Principal): String {
         // Solo AdminMunicipal puede editar
-        return handleAdminGetAction(principal, AdminRole.AdminMunicipal, model, "admin/user-form") { // failureRedirect eliminado
+        return handleAdminGetAction(principal, AdminRole.AdminMunicipal, model, "admin/user-form") {
             // Necesitamos obtener el usuario completo para el DTO
-            val user = adminDataService.getAllUsers().find { it.userId == id } ?: throw NoSuchElementException("Usuario no encontrado") // Corregido 'it'
+            val user = adminDataService.getAllUsers().find { u -> u.userId == id } ?: throw NoSuchElementException("Usuario no encontrado") // Corregido 'it' y lambda
             val userDto = UpdateUserRequestDto(user.name, user.email, user.phoneNumber, user.isActive)
             model.addAttribute("userId", id)
             model.addAttribute("userDto", userDto) // Usa el mismo DTO pero con datos cargados
@@ -98,7 +98,7 @@ class AdminWebController(
     @GetMapping("/licenses")
     fun showLicensesPage(model: Model, principal: Principal): String {
         // Todos los roles logueados pueden ver licencias (filtradas si es asociación)
-        return handleAdminGetAction(principal, null, model, "admin/licenses") { // failureRedirect eliminado
+        return handleAdminGetAction(principal, null, model, "admin/licenses") {
             model.addAttribute("licenses", adminDataService.getAllLicenses(principal.name)) // Pasar principal.name
             model.addAttribute("pageTitle", "Gestión de Licencias")
         }
@@ -106,7 +106,7 @@ class AdminWebController(
     @GetMapping("/licenses/new")
     fun showCreateLicenseForm(model: Model, principal: Principal): String {
         // Solo AdminMunicipal puede crear
-        return handleAdminGetAction(principal, AdminRole.AdminMunicipal, model, "admin/license-form") { // failureRedirect eliminado
+        return handleAdminGetAction(principal, AdminRole.AdminMunicipal, model, "admin/license-form") {
             model.addAttribute("licenseDto", CreateLicenseRequestDto("", null))
             model.addAttribute("associations", adminDataService.getAllAssociations())
             model.addAttribute("pageTitle", "Crear Nueva Licencia")
@@ -117,7 +117,7 @@ class AdminWebController(
     @GetMapping("/licenses/edit/{id}")
     fun showEditLicenseForm(@PathVariable id: Long, model: Model, principal: Principal): String {
         // Solo AdminMunicipal puede editar
-        return handleAdminGetAction(principal, AdminRole.AdminMunicipal, model, "admin/license-form") { // failureRedirect eliminado
+        return handleAdminGetAction(principal, AdminRole.AdminMunicipal, model, "admin/license-form") {
             val license = adminDataService.getLicenseById(id, principal.name) // Pasar principal.name
             val licenseDto = UpdateLicenseRequestDto(license.licenseNumber, license.association?.associationId)
             model.addAttribute("licenseId", id); model.addAttribute("licenseDto", licenseDto)
@@ -145,7 +145,7 @@ class AdminWebController(
     @GetMapping("/drivers")
     fun showDriversPage(model: Model, principal: Principal): String {
         // Todos los roles logueados pueden ver conductores (filtrados si es asociación)
-        return handleAdminGetAction(principal, null, model, "admin/drivers") { // failureRedirect eliminado
+        return handleAdminGetAction(principal, null, model, "admin/drivers") {
             model.addAttribute("drivers", adminDataService.getAllDrivers(principal.name)) // Pasar principal.name
             model.addAttribute("pageTitle", "Gestión de Conductores")
         }
@@ -153,7 +153,7 @@ class AdminWebController(
     @GetMapping("/drivers/new")
     fun showCreateDriverForm(model: Model, principal: Principal): String {
         // AdminMunicipal o Asociacion pueden crear
-        return handleAdminGetAction(principal, null, model, "admin/driver-form") { // failureRedirect eliminado
+        return handleAdminGetAction(principal, null, model, "admin/driver-form") {
             if(getAdminRole(principal) == AdminRole.GestorMunicipal) throw AccessDeniedException("Gestor no puede crear conductores.")
             model.addAttribute("driverDto", CreateDriverRequestDto("", "", DriverRole.Owner, 0L, true))
             model.addAttribute("licenses", adminDataService.getAllLicenses(principal.name)) // Licencias filtradas
@@ -165,7 +165,7 @@ class AdminWebController(
     @GetMapping("/drivers/edit/{id}")
     fun showEditDriverForm(@PathVariable id: Long, model: Model, principal: Principal): String {
         // AdminMunicipal o Asociacion pueden editar
-        return handleAdminGetAction(principal, null, model, "admin/driver-form") { // failureRedirect eliminado
+        return handleAdminGetAction(principal, null, model, "admin/driver-form") {
             if(getAdminRole(principal) == AdminRole.GestorMunicipal) throw AccessDeniedException("Gestor no puede editar conductores.")
             val driver = adminDataService.getDriverById(id, principal.name) // Pasar principal.name
             val driverDto = UpdateDriverRequestDto(driver.name, driver.role, driver.isActive)
@@ -198,7 +198,7 @@ class AdminWebController(
     @GetMapping("/vehicles")
     fun showVehiclesPage(model: Model, principal: Principal): String {
         // Todos los roles pueden ver vehículos (filtrados si es asociación)
-        return handleAdminGetAction(principal, null, model, "admin/vehicles") { // failureRedirect eliminado
+        return handleAdminGetAction(principal, null, model, "admin/vehicles") {
             model.addAttribute("vehicles", adminDataService.getAllVehicles(principal.name)) // Pasar principal.name
             model.addAttribute("pageTitle", "Gestión de Vehículos")
         }
@@ -206,7 +206,7 @@ class AdminWebController(
     @GetMapping("/vehicles/new")
     fun showCreateVehicleForm(model: Model, principal: Principal): String {
         // AdminMunicipal o Asociacion pueden crear
-        return handleAdminGetAction(principal, null, model, "admin/vehicle-form") { // failureRedirect eliminado
+        return handleAdminGetAction(principal, null, model, "admin/vehicle-form") {
             if(getAdminRole(principal) == AdminRole.GestorMunicipal) throw AccessDeniedException("Gestor no puede crear vehículos.")
             model.addAttribute("vehicleDto", CreateVehicleRequestDto("", 0L, null, null, false, false))
             model.addAttribute("licenses", adminDataService.getAllLicenses(principal.name)) // Licencias filtradas
@@ -217,7 +217,7 @@ class AdminWebController(
     @GetMapping("/vehicles/edit/{id}")
     fun showEditVehicleForm(@PathVariable id: Long, model: Model, principal: Principal): String {
         // AdminMunicipal o Asociacion pueden editar
-        return handleAdminGetAction(principal, null, model, "admin/vehicle-form") { // failureRedirect eliminado
+        return handleAdminGetAction(principal, null, model, "admin/vehicle-form") {
             if(getAdminRole(principal) == AdminRole.GestorMunicipal) throw AccessDeniedException("Gestor no puede editar vehículos.")
             val vehicle = adminDataService.getVehicleById(id, principal.name) // Pasar principal.name
             val vehicleDto = UpdateVehicleRequestDto(vehicle.licensePlate, vehicle.make, vehicle.model, vehicle.isPMRAdapted, vehicle.allowsPets)
@@ -250,7 +250,7 @@ class AdminWebController(
     @GetMapping("/trips")
     fun showTripsPage(model: Model, principal: Principal): String {
         // Todos los roles pueden ver el historial (filtrado si es asociación)
-        return handleAdminGetAction(principal, null, model, "admin/trips") { // failureRedirect eliminado
+        return handleAdminGetAction(principal, null, model, "admin/trips") {
             model.addAttribute("trips", adminDataService.getAllTrips(principal.name)) // Pasar principal.name
             model.addAttribute("pageTitle", "Historial de Viajes")
         }
@@ -260,7 +260,7 @@ class AdminWebController(
     @GetMapping("/incidents")
     fun showIncidentsPage(model: Model, principal: Principal): String {
         // Todos los roles pueden ver incidencias (filtradas si es asociación)
-        return handleAdminGetAction(principal, null, model, "admin/incidents") { // failureRedirect eliminado
+        return handleAdminGetAction(principal, null, model, "admin/incidents") {
             model.addAttribute("incidents", adminDataService.getAllIncidents(principal.name)) // Pasar principal.name
             model.addAttribute("pageTitle", "Gestión de Incidencias")
         }
@@ -268,7 +268,7 @@ class AdminWebController(
     @GetMapping("/incidents/{id}")
     fun showIncidentDetailPage(@PathVariable id: Long, model: Model, principal: Principal): String {
         // Todos los roles pueden ver detalles (filtrados si es asociación)
-        return handleAdminGetAction(principal, null, model, "admin/incident-detail") { // failureRedirect eliminado
+        return handleAdminGetAction(principal, null, model, "admin/incident-detail") {
             model.addAttribute("incident", adminDataService.getIncidentDetails(id, principal.name)) // Pasar principal.name
             model.addAttribute("statuses", IncidentStatus.entries) // Corregido: Usar .entries
             model.addAttribute("pageTitle", "Detalle de Incidencia")
@@ -288,7 +288,7 @@ class AdminWebController(
     @GetMapping("/config")
     fun showConfigPage(model: Model, principal: Principal): String {
         // Solo AdminMunicipal
-        return handleAdminGetAction(principal, AdminRole.AdminMunicipal, model, "admin/config") { // failureRedirect eliminado
+        return handleAdminGetAction(principal, AdminRole.AdminMunicipal, model, "admin/config") {
             model.addAttribute("configs", adminDataService.getAllSystemConfigs(principal.name)) // Pasar principal.name
             model.addAttribute("pageTitle", "Configuración del Sistema")
         }
@@ -307,7 +307,7 @@ class AdminWebController(
     @GetMapping("/reports")
     fun showReportsPage(model: Model, principal: Principal): String {
         // Todos los roles pueden ver informes
-        return handleAdminGetAction(principal, null, model, "admin/reports") { // failureRedirect eliminado
+        return handleAdminGetAction(principal, null, model, "admin/reports") {
             model.addAttribute("ratingStats", adminDataService.getRatingStats()) // getRatingStats no necesita principal.name
             model.addAttribute("pageTitle", "Informes y Estadísticas")
         }
@@ -317,7 +317,7 @@ class AdminWebController(
     @GetMapping("/trips/assign/{tripId}")
     fun showManualAssignForm(@PathVariable tripId: Long, model: Model, principal: Principal): String {
         // AdminMunicipal o Asociacion
-        return handleAdminGetAction(principal, null, model, "admin/trip-assign-manual") { // failureRedirect eliminado
+        return handleAdminGetAction(principal, null, model, "admin/trip-assign-manual") {
             if(getAdminRole(principal) == AdminRole.GestorMunicipal) throw AccessDeniedException("Gestor no puede asignar viajes.")
             val trip = tripRepository.findByIdOrNull(tripId) ?: throw NoSuchElementException("Viaje no encontrado")
             // Valida si el admin puede ver este viaje pendiente (reforzando la lógica del service)
@@ -346,78 +346,91 @@ class AdminWebController(
     
     /** Obtiene el rol del administrador logueado. Devuelve null si no se encuentra. */
     private fun getAdminRole(principal: Principal): AdminRole? {
+        // Usamos Non-Transactional getAdmin para evitar problemas de proxy
         return try { adminDataService.getAdmin(principal.name).role } catch (e: Exception) { null }
     }
-    
-    // /** Comprueba si el administrador logueado es municipal (Admin o Gestor). */
-    // private fun isAdminMunicipal(principal: Principal): Boolean { // Eliminado porque no se usa
-    //     val role = getAdminRole(principal)
-    //     return role == AdminRole.AdminMunicipal || role == AdminRole.GestorMunicipal
-    // }
     
     /**
      * Helper genérico para manejar peticiones GET del BackOffice con validación de rol.
      * Captura excepciones comunes y redirige a páginas de error apropiadas.
+     * @param principal El usuario autenticado.
+     * @param requiredRole El rol mínimo requerido para VER (null si cualquier rol logueado es suficiente). AdminMunicipal y GestorMunicipal siempre tienen acceso de lectura.
+     * @param model El modelo para pasar datos a la vista.
+     * @param successView La vista a renderizar si todo va bien.
+     * @param action La lógica específica del endpoint a ejecutar.
+     * @return El nombre de la vista o la redirección.
      */
-    private fun handleAdminGetAction(principal: Principal, requiredRole: AdminRole?, model: Model, successView: String, action: () -> Unit): String { // failureRedirect eliminado
+    private fun handleAdminGetAction(principal: Principal, requiredRole: AdminRole?, model: Model, successView: String, action: () -> Unit): String {
         try {
             val userRole = getAdminRole(principal) ?: throw AccessDeniedException("Usuario no encontrado o sin rol.")
             val isAdmin = userRole == AdminRole.AdminMunicipal
             val isGestor = userRole == AdminRole.GestorMunicipal
             
+            // Verifica si tiene permiso para VER (Admin y Gestor siempre pueden)
             val hasPermission = when {
-                isAdmin || isGestor -> true
-                requiredRole == null && userRole == AdminRole.Asociacion -> true
-                requiredRole == AdminRole.Asociacion && userRole == AdminRole.Asociacion -> true
-                else -> false
+                isAdmin || isGestor -> true // Admin y Gestor pueden ver todo
+                requiredRole == null && userRole == AdminRole.Asociacion -> true // Acceso general permitido para Asociación si no se especifica rol mínimo
+                requiredRole == AdminRole.Asociacion && userRole == AdminRole.Asociacion -> true // Rol específico Asociación
+                requiredRole == AdminRole.AdminMunicipal && isAdmin -> true // Si requiere Admin y lo es
+                else -> false // Si no es Municipal y no cumple el rol de Asociación (si se requiere) o si el rol requerido es Admin y no lo es
             }
             
             if (!hasPermission) {
-                throw AccessDeniedException("Permiso denegado para rol $userRole.")
+                throw AccessDeniedException("Permiso denegado para ver esta sección con el rol $userRole.")
             }
             
-            action()
+            action() // Ejecuta la lógica específica del endpoint (que puede lanzar sus propias AccessDeniedException si el filtrado falla)
             return successView
         } catch (e: AccessDeniedException) {
-            model.addAttribute("pageTitle", "Acceso Denegado")
-            return "admin/access-denied"
+            model.addAttribute("pageTitle", "Acceso Denegado") // Título para la página de error
+            model.addAttribute("errorMessage", e.message ?: "No tienes los permisos necesarios para acceder a esta página.")
+            return "admin/access-denied" // Página de Acceso Denegado
         } catch (e: NoSuchElementException){
-            model.addAttribute("pageTitle", "Error - No encontrado")
+            model.addAttribute("pageTitle", "Error - No encontrado") // Título para la página de error
             model.addAttribute("errorMessage", e.message ?: "El recurso solicitado no fue encontrado.")
-            return "admin/error"
+            return "admin/error" // Página genérica de error
         } catch (e: Exception) {
-            model.addAttribute("pageTitle", "Error Inesperado")
+            model.addAttribute("pageTitle", "Error Inesperado") // Título para la página de error
             model.addAttribute("errorMessage", "Error inesperado del servidor: ${e.message}")
             // e.printStackTrace() // Considera quitar esto en producción
-            return "admin/error"
+            return "admin/error" // Página genérica de error
         }
     }
     
     /**
      * Helper genérico para manejar acciones POST/PUT/DELETE del BackOffice con validación de rol.
+     * @param principal El usuario autenticado.
+     * @param requiredRole El rol mínimo requerido para la acción (null si AdminMunicipal y Asociacion pueden). AdminMunicipal siempre tiene permiso.
+     * @param redirectAttributes Para pasar mensajes flash.
+     * @param redirectUrl La URL a la que redirigir después de la acción.
+     * @param action La lógica específica del endpoint a ejecutar.
+     * @return La redirección.
      */
     private fun handleAdminAction(principal: Principal, requiredRole: AdminRole?, redirectAttributes: RedirectAttributes, redirectUrl: String, action: () -> Unit): String {
         try {
             val userRole = getAdminRole(principal) ?: throw AccessDeniedException("Usuario no encontrado o sin rol.")
             val isAdmin = userRole == AdminRole.AdminMunicipal
             
+            // Verifica si tiene permiso para la ACCIÓN (Gestor nunca puede)
             val hasPermission = when {
-                isAdmin -> true
+                isAdmin -> true // AdminMunicipal puede todo
+                // Acciones sin rol específico pueden ser hechas por Asociación (ej. crear/editar sus drivers/vehicles) si requiredRole es null
                 requiredRole == null && userRole == AdminRole.Asociacion -> true
+                // Si se requiere un rol específico (solo puede ser AdminMunicipal o Asociacion), comprueba si lo tiene
                 requiredRole != null && userRole == requiredRole -> true
-                else -> false // Gestor no puede realizar acciones
+                else -> false // Gestor y otros casos no permitidos
             }
             
             if (!hasPermission) {
                 throw AccessDeniedException("Permiso denegado para realizar esta acción con el rol $userRole.")
             }
             
-            action()
+            action() // Ejecuta la lógica específica
         } catch (e: AccessDeniedException) {
             redirectAttributes.addFlashAttribute("errorMessage", e.message ?: "No tienes permiso para realizar esta acción.")
-        } catch (e: IllegalStateException) {
+        } catch (e: IllegalStateException) { // Errores de negocio (ej. "Email ya en uso")
             redirectAttributes.addFlashAttribute("errorMessage", e.message)
-        } catch (e: Exception) {
+        } catch (e: Exception) { // Otros errores inesperados
             redirectAttributes.addFlashAttribute("errorMessage", "Ha ocurrido un error inesperado: ${e.message}")
             // e.printStackTrace() // Considera quitar esto en producción
         }

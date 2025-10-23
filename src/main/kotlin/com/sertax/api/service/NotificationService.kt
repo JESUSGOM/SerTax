@@ -2,7 +2,6 @@ package com.sertax.api.service
 
 import com.sertax.api.dto.chat.OutboundChatMessageDto
 import com.sertax.api.model.Message
-import com.sertax.api.model.SenderType
 import com.sertax.api.model.Trip
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.stereotype.Service

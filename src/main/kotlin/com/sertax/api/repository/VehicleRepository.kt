@@ -10,5 +10,5 @@ interface VehicleRepository : JpaRepository<Vehicle, Long> {
     fun findByLicensePlate(licensePlate: String): Vehicle?
     
     // <-- AÑADIDO/CORREGIDO: Define el método con el nombre correcto
-    fun findByLicenseAssociation(association: Association): List<Vehicle>
+    fun findByLicense_Association(association: Association): List<Vehicle>
 }

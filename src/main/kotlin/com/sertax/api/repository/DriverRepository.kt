@@ -14,7 +14,7 @@ interface DriverRepository : JpaRepository<Driver, Long> {
      * Busca todos los conductores que pertenecen a una asociación específica.
      * Utiliza la nueva relación directa: Driver -> Association.
      */
-    fun findByAssociationAssociationid(associationid: Long): List<Driver>
+    fun findByAssociation_Associationid(associationid: Long): List<Driver>
     
     
     // <-- CORREGIDO: Tu método complejo, ahora usando la relación directa

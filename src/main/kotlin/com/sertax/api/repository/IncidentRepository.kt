@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository
 
 @Repository
 interface IncidentRepository : JpaRepository<Incident, Long> {
+	fun findByTrip_Driver_License_Association()
 }

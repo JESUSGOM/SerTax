@@ -9,8 +9,6 @@ import org.springframework.stereotype.Repository
 interface LicenseRepository : JpaRepository<License, Long> {
     fun findByLicenseNumber(licenseNumber: String): License?
     
-    // ASEGÚRATE DE QUE ESTE MÉTODO ESTÉ DEFINIDO EXACTAMENTE ASÍ
-    fun findByAssociationAssociationId(associationId: Long): List<License>
     
     /**
      * Busca todas las licencias que pertenecen a una asociación específica.

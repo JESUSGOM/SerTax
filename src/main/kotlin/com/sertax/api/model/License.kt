@@ -10,9 +10,9 @@ data class License(
     val licenseId: Long = 0,
 
     @Column(unique = true, nullable = false, length = 50)
-    val licenseNumber: String,
+    var licenseNumber: String,
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "associationId")
-    val association: Association?
+    var association: Association?
 )

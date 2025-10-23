@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle} ?: 'SerTax Santa Cruz'">SerTax</title>
+
+    <!-- Leaflet CSS (Map library) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin=""/>
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+
+    <!-- SockJS and STOMP Client (WebSocket libraries) -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+
+    <style>
+        body { font-family: sans-serif; margin: 0; display: flex; flex-direction: column; min-height: 100vh; }
+        header { background-color: #f8f9fa; padding: 10px 20px; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center; }
+        header h1 { margin: 0; font-size: 1.5em; }
+        main { flex-grow: 1; padding: 20px; }
+        #map { height: 400px; width: 100%; margin-bottom: 20px; border: 1px solid #ccc; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input[type="text"], input[type="number"], select { width: 100%; padding: 8px; box-sizing: border-box; }
+        button { padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        #trip-status { margin-top: 20px; padding: 15px; background-color: #e9ecef; border-radius: 5px; }
+    </style>
+</head>
+<body>
+<header>
+    <h1>SerTax Santa Cruz</h1>
+    <div>
+        <!-- Placeholder for user info/logout -->
+        <span id="user-info" style="margin-right: 15px;"></span>
+        <button id="logout-button" style="display: none;" onclick="logout()">Cerrar Sesión</button>
+    </div>
+</header>
+
+<main th:fragment="content">
+    <!-- Specific page content will go here -->
+</main>
+
+<script>
+    // Simple function to get JWT token
+    function getToken() {
+        return localStorage.getItem('user_token');
+    }
+
+    // Logout function
+    function logout() {
+        localStorage.removeItem('user_token');
+        localStorage.removeItem('user_id'); // Remove user ID as well
+        window.location.href = '/login-user';
+    }
+
+    // Basic check on load
+    document.addEventListener('DOMContentLoaded', () => {
+        const token = getToken();
+        if (token) {
+            // TODO: Decode token to get user name/ID or make an API call /api/users/me
+            // For now, just show logout button
+            document.getElementById('logout-button').style.display = 'inline-block';
+            // Try to get user ID from storage
+            const userId = localStorage.getItem('user_id');
+            if (userId) {
+                document.getElementById('user-info').textContent = `Usuario ID: ${userId}`; // Placeholder
+            }
+        } else {
+            // If not on login/register page, redirect
+            if (!window.location.pathname.includes('/login-user') && !window.location.pathname.includes('/register')) {
+                window.location.href = '/login-user';
+            }
+        }
+    });
+</script>
+</body>
+</html>

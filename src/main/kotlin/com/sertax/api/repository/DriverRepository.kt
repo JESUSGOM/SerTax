@@ -1,6 +1,7 @@
 package com.sertax.api.repository
 
 import com.sertax.api.model.Driver
+import com.sertax.api.model.Association
 import com.sertax.api.model.DriverRealtimeStatus
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
@@ -35,4 +36,9 @@ interface DriverRepository : JpaRepository<Driver, Long> {
     fun findByIsActiveTrueAndDriverStatus_CurrentStatusIn(
         statuses: List<DriverRealtimeStatus>
     ): List<Driver>
+    
+    /**
+     * Busca todos los conductores que pertenecen a una asociación específica.
+     */
+    fun findByAssociation(association: Association): List<Driver>
 }

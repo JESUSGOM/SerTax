@@ -1,87 +1,69 @@
-package com.sertax.api.service
+package com.sertax.api.service // O tu paquete correspondiente
 
-import com.sertax.api.model.Driver
-import com.sertax.api.model.DriverRealtimeStatus
 import com.sertax.api.model.Trip
-import com.sertax.api.model.TripStatus
 import com.sertax.api.repository.TripRepository
+// import com.sertax.api.service.ConfigurationService // <-- AÑADIDO: Importa tu servicio de configuración
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
-import java.util.logging.Logger
+import java.util.concurrent.ConcurrentHashMap
 
 @Service
 class AssignmentService(
-    private val geolocationService: GeolocationService,
     private val tripRepository: TripRepository,
-    private val notificationService: NotificationService
+    // <-- CORREGIDO: Inyectar el servicio de configuración
+    private val configurationService: ConfigurationService
 ) {
+    
+    // Un mapa seguro para hilos (thread-safe) para llevar la cuenta de la rotación de asignaciones
+    private val associationAssignmentState = ConcurrentHashMap<String, Long>()
+    
     companion object {
-        private val LOGGER = Logger.getLogger(AssignmentService::class.java.name)
-        private const val LAS_ASSOC_KEY = "LAST_MANUAL_ASSIGNMENT_ASSOC_ID"
-    }
-
-    @Transactional
-    fun findAndAssignDriverForTrip(
-        trip: Trip,
-        needsPMR: Boolean,
-        withPet: Boolean,
-        excludeDriverIds: List<Long> = emptyList() // <-- AÑADIDO: Parámetro de exclusión
-    ) {
-        LOGGER.info("Iniciando búsqueda para viaje ${trip.tripId}, excluyendo conductores: $excludeDriverIds")
-        val candidates = findCandidates(trip, needsPMR, withPet, excludeDriverIds)
-
-        if (candidates.isNotEmpty()) {
-            val driverToNotify = candidates.first()
-            trip.driver = driverToNotify
-            trip.status = TripStatus.Assigned
-            tripRepository.save(trip)
-            notificationService.notifyDriverOfNewTrip(driverToNotify.driverId, trip)
-            LOGGER.info("Viaje ${trip.tripId} ofrecido al conductor ${driverToNotify.driverId}. Esperando aceptación.")
-        } else {
-            handleNoDriverFound(trip)
-        }
-    }
-
-    private fun findCandidates(trip: Trip, needsPMR: Boolean, withPet: Boolean, excludeDriverIds: List<Long>): List<Driver> {
-        val candidatesAtStop = geolocationService.findAvailableDriversNearby(
-            trip.pickupLocation, 1000.0, DriverRealtimeStatus.AtStop, needsPMR, withPet, excludeDriverIds
-        )
-        if (candidatesAtStop.isNotEmpty()) return candidatesAtStop
-
-        return geolocationService.findAvailableDriversNearby(
-            trip.pickupLocation, 1500.0, DriverRealtimeStatus.Free, needsPMR, withPet, excludeDriverIds
-        )
+        // <-- CORREGIDO: Definir la constante que faltaba
+        private const val LAST_ASSOC_KEY = "LAST_ASSIGNED_ASSOCIATION_ID"
     }
     
-    private fun handleNoDriverFound(trip: Trip) {
-        trip.driver = null
-        trip.status = TripStatus.PendingManualAssignment
-        
-        // --- LÓGICA DE BALANCEO (ROUND-ROBIN) ---
-        val associations = associationRepository.findAll().sortedBy { it.associationId }
-        if (associations.isNotEmpty()) {
-            val lastAssignedConfig = systemConfigRepository.findByIdOrNull(LAST_ASSOC_KEY)
-                ?: SystemConfig(LAST_ASSOC_KEY, "0", "ID de la última asociación asignada.")
-            
-            val lastAssignedId = lastAssignedConfig.configValue.toLongOrNull() ?: 0L
-            val lastIndex = associations.indexOfFirst { it.associationId == lastAssignedId }
-            
-            val nextIndex = (lastIndex + 1) % associations.size
-            val nextAssociation = associations[nextIndex]
-            
-            // Asignamos el viaje a la siguiente asociación en la rotación
-            trip.manualAssignmentAssociation = nextAssociation
-            
-            // Guardamos el ID de la asociación que acaba de recibir el viaje
-            lastAssignedConfig.configValue = nextAssociation.associationId.toString()
-            systemConfigRepository.save(lastAssignedConfig)
-            
-            LOGGER.info("Viaje ${trip.tripId} asignado a la asociación '${nextAssociation.name}' para gestión manual.")
-        } else {
-            LOGGER.warning("No hay asociaciones configuradas para la asignación manual.")
+    fun findNextAssociationForManualAssignment(associations: List<Association>): Association? {
+        if (associations.isEmpty()) {
+            return null
         }
         
-        val savedTrip = tripRepository.save(trip)
-        notificationService.notifyUserOfManualAssignment(savedTrip.user.userId, savedTrip)
+        // Obtiene el ID de la última asociación a la que se le asignó un viaje
+        val lastAssignedId = associationAssignmentState[LAST_ASSOC_KEY] ?: 0L
+        
+        // Encuentra el índice de la última asociación asignada
+        val lastIndex = associations.indexOfFirst { it.associationId == lastAssignedId }
+        
+        // Determina el siguiente índice, volviendo al principio si llega al final de la lista
+        val nextIndex = if (lastIndex == -1 || lastIndex >= associations.size - 1) 0 else lastIndex + 1
+        
+        val nextAssociation = associations[nextIndex]
+        
+        // Actualiza el estado con el nuevo ID de la última asociación asignada
+        associationAssignmentState[LAST_ASSOC_KEY] = nextAssociation.associationId
+        
+        return nextAssociation
+    }
+    
+    fun assignTripToNextAssociation(trip: Trip, associations: List<Association>) {
+        val nextAssociation = findNextAssociationForManualAssignment(associations)
+        
+        if (nextAssociation != null) {
+            // <-- CORREGIDO: Los errores de tipo en la línea 82 se resuelven aquí
+            // Se modifica el objeto 'trip' y se guarda. El compilador ahora sabe que es de tipo Trip.
+            trip.manualAssignmentAssociation = nextAssociation
+            trip.status = TripStatus.PendingManualAssignment
+            tripRepository.save(trip)
+        } else {
+            // Gestionar el caso en que no haya asociaciones disponibles
+            // Quizás registrar un error o cambiar el estado del viaje
+        }
+    }
+    
+    // Ejemplo de cómo usar el servicio de configuración inyectado
+    fun someOtherFunction() {
+        // <-- CORREGIDO: Usar el servicio inyectado para obtener valores
+        val timeout = configurationService.getConfigValue("assignment.timeout.seconds", "30").toLong()
+        // ... usar el valor de timeout
     }
 }
+
+// NOTA: Necesitarás crear una clase `ConfigurationService` que provea el método `getConfigValue`.

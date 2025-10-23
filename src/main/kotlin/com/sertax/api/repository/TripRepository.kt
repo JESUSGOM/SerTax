@@ -35,6 +35,6 @@ interface TripRepository : JpaRepository<Trip, Long> {
      * pertenecen a una asociación específica.
      * Esta es la consulta que el controlador usará para que una asociación vea su historial completo.
      */
-    @Query("SELECT t FROM Trip t WHERE t.driver.association.associationid = :associationid")
+    @Query("SELECT t FROM Trip t WHERE t.driver.association.associationId = :associationid")
     fun findByDriverAssociationId(associationid: Long): List<Trip>
 }
